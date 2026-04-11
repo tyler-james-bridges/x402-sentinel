@@ -1,0 +1,20 @@
+{
+  "providerPages": [
+    { "name": "AFK Explore", "url": "https://afkonchain.xyz/explore" },
+    { "name": "StableEnrich", "url": "https://stableenrich.dev/" },
+    { "name": "StableSocial", "url": "https://stablesocial.dev/" },
+    { "name": "StableEmail", "url": "https://stableemail.dev/" },
+    { "name": "StableUpload", "url": "https://stableupload.dev/" },
+    { "name": "StableTravel", "url": "https://stabletravel.dev/" },
+    { "name": "Canary", "url": "https://canary.0x402.sh/" },
+    { "name": "x402scan Resources", "url": "https://www.x402scan.com/resources" }
+  ],
+  "payableEndpoints": [
+    { "name": "StableEnrich Exa Search", "url": "https://stableenrich.dev/api/exa/search", "method": "POST" },
+    { "name": "StableEnrich Firecrawl Scrape", "url": "https://stableenrich.dev/api/firecrawl/scrape", "method": "POST" },
+    { "name": "StableEnrich Apollo People", "url": "https://stableenrich.dev/api/apollo/people-search", "method": "POST" },
+    { "name": "StableEmail Send", "url": "https://stableemail.dev/api/send", "method": "POST" },
+    { "name": "StableUpload File", "url": "https://stableupload.dev/api/upload", "method": "POST" },
+    { "name": "StableTravel Search", "url": "https://stabletravel.dev/api/flights/search", "method": "POST" }
+  ]
+}

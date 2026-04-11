@@ -92,21 +92,23 @@ function pickProvider(endpoints: CanaryHealthPayload['endpoints']) {
     .map((endpoint) => scoreCanaryEndpoint(endpoint))
     .sort((a, b) => b.total - a.total);
 
-  const selected =
-    scored.find(
-      (s) =>
-        s.gates.protocolPass &&
-        s.gates.reliabilityPass &&
-        s.gates.securityPass &&
-        s.gates.economicCriticalPass,
-    ) ?? scored[0];
+  const gatePassed = scored.find(
+    (s) =>
+      s.gates.protocolPass &&
+      s.gates.reliabilityPass &&
+      s.gates.securityPass &&
+      s.gates.economicCriticalPass,
+  );
 
-  return { selected, scoredTop5: scored.slice(0, 5) };
+  const selected = gatePassed ?? scored[0];
+  const fallbackUsed = !gatePassed;
+
+  return { selected, scoredTop5: scored.slice(0, 5), fallbackUsed };
 }
 
 export async function runGTMCopilotBundle(input: GTMCopilotRequest) {
   const providers = await fetchProvidersFromCanary();
-  const { selected, scoredTop5 } = pickProvider(providers);
+  const { selected, scoredTop5, fallbackUsed } = pickProvider(providers);
 
   return {
     jobId: `job_${Date.now()}`,
@@ -124,6 +126,7 @@ export async function runGTMCopilotBundle(input: GTMCopilotRequest) {
           score: selected?.total,
           band: selected?.band,
           gates: selected?.gates,
+          fallbackUsed,
         },
       ],
     },

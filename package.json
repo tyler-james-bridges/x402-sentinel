@@ -9,7 +9,8 @@
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
     "dev:api": "pnpm --filter @x402-sentinel/bundle-api dev",
-    "report:canary": "node scripts/generate-canary-report.mjs"
+    "report:canary": "node scripts/generate-canary-report.mjs",
+    "report:providers": "node scripts/generate-providers-report.mjs"
   },
   "devDependencies": {
     "typescript": "^5.8.3"
