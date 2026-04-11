@@ -25,7 +25,13 @@ interface ProviderScore {
   status: number;
   responseTimeMs: number;
   total: number;
-  band: 'trusted' | 'strong' | 'caution' | 'high-risk';
+  band: 'trusted' | 'strong' | 'caution' | 'experimental' | 'high-risk';
+  confidence: number;
+  evidence: {
+    protocolEvidence: boolean;
+    priceEvidence: boolean;
+    timingEvidence: boolean;
+  };
   gates: {
     protocolPass: boolean;
     reliabilityPass: boolean;
@@ -40,6 +46,14 @@ function parsePrice(price?: string): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
+function gradeBand(total: number): ProviderScore['band'] {
+  if (total >= 90) return 'trusted';
+  if (total >= 80) return 'strong';
+  if (total >= 70) return 'caution';
+  if (total >= 60) return 'experimental';
+  return 'high-risk';
+}
+
 function scoreCanaryEndpoint(endpoint: CanaryEndpoint): ProviderScore {
   const priceValue = parsePrice(endpoint.x402Details?.price);
   const protocolConformance = endpoint.isX402 ? (endpoint.status === 402 ? 22 : 15) : 0;
@@ -48,9 +62,9 @@ function scoreCanaryEndpoint(endpoint: CanaryEndpoint): ProviderScore {
     : 5;
   const security = endpoint.isX402 ? 14 : 8;
   const economicIntegrity =
-    priceValue === null ? 8 : priceValue === 0 ? 6 : priceValue > 1000 ? 4 : 10;
+    priceValue === null ? 6 : priceValue === 0 ? 6 : priceValue > 1000 ? 4 : 11;
   const devexDiscovery = endpoint.isX402 ? 7 : 4;
-  const operationalTransparency = endpoint.isHealthy ? 4 : 2;
+  const operationalTransparency = endpoint.isHealthy ? 3 : 1;
 
   const total =
     protocolConformance +
@@ -60,7 +74,14 @@ function scoreCanaryEndpoint(endpoint: CanaryEndpoint): ProviderScore {
     devexDiscovery +
     operationalTransparency;
 
-  const band = total >= 90 ? 'trusted' : total >= 80 ? 'strong' : total >= 70 ? 'caution' : 'high-risk';
+  const evidence = {
+    protocolEvidence: endpoint.status > 0,
+    priceEvidence: priceValue !== null,
+    timingEvidence: endpoint.responseTimeMs > 0,
+  };
+
+  const evidenceCount = Number(evidence.protocolEvidence) + Number(evidence.priceEvidence) + Number(evidence.timingEvidence);
+  const confidence = Math.min(95, 40 + evidenceCount * 15);
 
   return {
     name: endpoint.name,
@@ -68,12 +89,14 @@ function scoreCanaryEndpoint(endpoint: CanaryEndpoint): ProviderScore {
     status: endpoint.status,
     responseTimeMs: endpoint.responseTimeMs,
     total,
-    band,
+    band: gradeBand(total),
+    confidence,
+    evidence,
     gates: {
       protocolPass: protocolConformance >= 20,
       reliabilityPass: reliability >= 18,
       securityPass: security >= 14,
-      economicCriticalPass: economicIntegrity >= 10,
+      economicCriticalPass: economicIntegrity >= 10 && evidence.priceEvidence,
     },
   };
 }
@@ -109,23 +132,42 @@ function pickProvider(endpoints: CanaryHealthPayload['endpoints']) {
 export async function runGTMCopilotBundle(input: GTMCopilotRequest) {
   const providers = await fetchProvidersFromCanary();
   const { selected, scoredTop5, fallbackUsed } = pickProvider(providers);
+  const nowIso = new Date().toISOString();
 
   return {
     jobId: `job_${Date.now()}`,
+    createdAt: nowIso,
     providerSelected: selected?.url ?? 'none',
     scoreSnapshot: {
       selected,
       top5: scoredTop5,
     },
     receiptEnvelope: {
+      envelopeId: `receipt_${Date.now()}`,
+      generatedAt: nowIso,
       pricingMode: ['exact', 'upto'],
+      audit: {
+        policyVersion: 'v1',
+        fallbackUsed,
+      },
       steps: [
         {
+          stepId: 'step-provider-selection-001',
           step: 'provider-selection',
+          timestamp: nowIso,
           status: selected?.status,
           score: selected?.total,
           band: selected?.band,
+          confidence: selected?.confidence,
           gates: selected?.gates,
+          evidenceRefs: selected
+            ? [
+                `provider:${selected.url}`,
+                `status:${selected.status}`,
+                `latencyMs:${selected.responseTimeMs}`,
+                `priceEvidence:${selected.evidence.priceEvidence}`,
+              ]
+            : [],
           fallbackUsed,
         },
       ],

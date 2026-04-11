@@ -32,7 +32,7 @@ function gradeBand(total) {
 }
 
 function confidenceScore(evidenceCount, warningsCount) {
-  const base = Math.min(90, 35 + evidenceCount * 12);
+  const base = Math.min(95, 35 + evidenceCount * 15);
   return Math.max(20, base - warningsCount * 5);
 }
 
@@ -130,16 +130,28 @@ function scorePageDiscovery(result) {
   };
 
   const total = Object.values(categories).reduce((a, b) => a + b, 0);
+  const evidence = {
+    discoveryDoc: result.source !== 'endpoint',
+    endpointCountEvidence: (result.endpointCount || 0) > 0,
+    samplePathEvidence: Boolean(result.samplePath),
+  };
   const evidenceCount =
-    (result.source !== 'endpoint' ? 1 : 0) +
-    (result.endpointCount > 0 ? 1 : 0) +
-    (result.samplePath ? 1 : 0);
+    Number(evidence.discoveryDoc) +
+    Number(evidence.endpointCountEvidence) +
+    Number(evidence.samplePathEvidence);
 
   return {
     total,
     band: gradeBand(total),
     confidence: confidenceScore(evidenceCount, result.warnings.length),
     categories,
+    evidence,
+    gates: {
+      protocolPass: categories.protocolConformance >= 20,
+      reliabilityPass: categories.reliabilityPerformance >= 18,
+      securityPass: categories.securityAbuseResistance >= 14,
+      economicCriticalPass: categories.economicIntegrity >= 10,
+    },
   };
 }
 
@@ -151,23 +163,25 @@ function scorePayableProbe(result, price) {
     reliabilityPerformance: Math.max(8, 25 - Math.floor((result.responseTimeMs || 1000) / 40)),
     securityAbuseResistance: result.isX402Like ? 14 : 8,
     economicIntegrity:
-      priceValue === null ? 8 : priceValue === 0 ? 6 : priceValue > 1000 ? 4 : 11,
+      priceValue === null ? 6 : priceValue === 0 ? 6 : priceValue > 1000 ? 4 : 11,
     devexDiscovery: result.isX402Like ? 7 : 3,
     operationalTransparency: result.status > 0 ? 3 : 1,
   };
 
   const total = Object.values(categories).reduce((a, b) => a + b, 0);
+  const evidence = {
+    protocolEvidence: result.status > 0,
+    timingEvidence: result.responseTimeMs > 0,
+    priceEvidence: priceValue !== null,
+  };
   const evidenceCount =
-    (result.status > 0 ? 1 : 0) +
-    (result.isX402Like ? 1 : 0) +
-    (priceValue !== null ? 1 : 0) +
-    (result.responseTimeMs > 0 ? 1 : 0);
+    Number(evidence.protocolEvidence) + Number(evidence.timingEvidence) + Number(evidence.priceEvidence);
 
   const gates = {
     protocolPass: categories.protocolConformance >= 20,
     reliabilityPass: categories.reliabilityPerformance >= 18,
     securityPass: categories.securityAbuseResistance >= 14,
-    economicCriticalPass: categories.economicIntegrity >= 10,
+    economicCriticalPass: categories.economicIntegrity >= 10 && evidence.priceEvidence,
   };
 
   return {
@@ -175,6 +189,7 @@ function scorePayableProbe(result, price) {
     band: gradeBand(total),
     confidence: confidenceScore(evidenceCount, 0),
     categories,
+    evidence,
     gates,
   };
 }
@@ -244,7 +259,9 @@ const selectedForRouting = endpointScores.filter(
     e.gates.economicCriticalPass,
 );
 
-const selectedEndpoints = strictPayable ? endpointScores : endpointScores.slice(0, Math.max(20, endpointScores.length));
+const selectedEndpoints = strictPayable
+  ? endpointScores
+  : endpointScores.slice(0, Math.max(20, endpointScores.length));
 
 const md = [
   '# Providers Score Snapshot',
@@ -264,11 +281,11 @@ const md = [
   '',
   '## Payable Endpoint Probes (routing candidates)',
   '',
-  '| Endpoint | Method | Score | Band | Confidence | Status | Latency | x402-like | Price |',
-  '|---|---|---:|---|---:|---:|---:|---|---|',
+  '| Endpoint | Method | Score | Band | Confidence | Status | Latency | x402-like | Price | Econ Gate |',
+  '|---|---|---:|---|---:|---:|---:|---|---|---|',
   ...selectedEndpoints.map(
     (s) =>
-      `| ${s.name} | ${s.method} | ${s.total} | ${s.band} | ${s.confidence} | ${s.status} | ${s.responseTimeMs}ms | ${s.isX402Like ? 'yes' : 'no'} | ${s.price} |`,
+      `| ${s.name} | ${s.method} | ${s.total} | ${s.band} | ${s.confidence} | ${s.status} | ${s.responseTimeMs}ms | ${s.isX402Like ? 'yes' : 'no'} | ${s.price} | ${s.gates.economicCriticalPass ? 'pass' : 'fail'} |`,
   ),
   '',
   `Total payable endpoints scored: ${endpointScores.length}`,
