@@ -1,0 +1,48 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "x402 Sentinel Bundle API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/bundles/gtm-copilot": {
+      "post": {
+        "summary": "Run GTM Copilot bundle",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "targets": { "type": "array", "items": { "type": "string" } },
+                  "goal": { "type": "string" },
+                  "budget": { "type": "number" }
+                },
+                "required": ["targets", "goal"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bundle accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jobId": { "type": "string" },
+                    "providerSelected": { "type": "string" },
+                    "scoreSnapshot": { "type": "object" },
+                    "receiptEnvelope": { "type": "object" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

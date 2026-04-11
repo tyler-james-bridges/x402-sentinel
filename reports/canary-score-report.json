@@ -1,0 +1,436 @@
+{
+  "generatedAt": "2026-04-11T05:27:21.603Z",
+  "summary": {
+    "total": 17,
+    "online": 17,
+    "degraded": 0,
+    "x402Enabled": 16
+  },
+  "scored": [
+    {
+      "name": "x402scan Resources",
+      "url": "https://www.x402scan.com/api/x402/resources",
+      "status": 402,
+      "responseTimeMs": 39,
+      "isX402": true,
+      "price": "$0.01 USDC",
+      "total": 82,
+      "band": "strong",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 25,
+        "security": 14,
+        "economicIntegrity": 10,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "x402scan Merchants",
+      "url": "https://www.x402scan.com/api/x402/merchants",
+      "status": 402,
+      "responseTimeMs": 61,
+      "isX402": true,
+      "price": "$0.01 USDC",
+      "total": 81,
+      "band": "strong",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 24,
+        "security": 14,
+        "economicIntegrity": 10,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "x402scan Facilitators",
+      "url": "https://www.x402scan.com/api/x402/facilitators",
+      "status": 402,
+      "responseTimeMs": 78,
+      "isX402": true,
+      "price": "$0.01 USDC",
+      "total": 81,
+      "band": "strong",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 24,
+        "security": 14,
+        "economicIntegrity": 10,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "Giga API",
+      "url": "https://stableclaude.dev/api/start",
+      "status": 402,
+      "responseTimeMs": 50,
+      "isX402": true,
+      "price": "$5 USDC",
+      "total": 81,
+      "band": "strong",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 24,
+        "security": 14,
+        "economicIntegrity": 10,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "StableEnrich Exa Search",
+      "url": "https://stableenrich.dev/api/exa/search",
+      "status": 402,
+      "responseTimeMs": 185,
+      "isX402": true,
+      "price": "$0.01 USDC",
+      "total": 78,
+      "band": "caution",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 21,
+        "security": 14,
+        "economicIntegrity": 10,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "StableEnrich Apollo People",
+      "url": "https://stableenrich.dev/api/apollo/people-search",
+      "status": 402,
+      "responseTimeMs": 186,
+      "isX402": true,
+      "price": "$0.02 USDC",
+      "total": 78,
+      "band": "caution",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 21,
+        "security": 14,
+        "economicIntegrity": 10,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "dTelecom x402",
+      "url": "https://x402.dtelecom.org/v1/credits/purchase",
+      "status": 402,
+      "responseTimeMs": 31,
+      "isX402": true,
+      "price": "$0 USDC",
+      "total": 78,
+      "band": "caution",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": false
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 25,
+        "security": 14,
+        "economicIntegrity": 6,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "Bankr x402 Health",
+      "url": "https://x402.bankr.bot/0x72e45a93491a6acfd02da6ceb71a903f3d3b6d08/health",
+      "status": 402,
+      "responseTimeMs": 226,
+      "isX402": true,
+      "price": "$0.001 USDC",
+      "total": 77,
+      "band": "caution",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 20,
+        "security": 14,
+        "economicIntegrity": 10,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "LITCOIN Compute",
+      "url": "https://x402.bankr.bot/0xcea8f39419541e6ac9efbdd37b60657b4093ef08/compute",
+      "status": 402,
+      "responseTimeMs": 224,
+      "isX402": true,
+      "price": "$0.001 USDC",
+      "total": 77,
+      "band": "caution",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 20,
+        "security": 14,
+        "economicIntegrity": 10,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "Trending Base Coins",
+      "url": "https://x402.bankr.bot/0xf47535adb19c8905f9384e423063708651ac2805/trending-base-coins",
+      "status": 402,
+      "responseTimeMs": 210,
+      "isX402": true,
+      "price": "$0.001 USDC",
+      "total": 77,
+      "band": "caution",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 20,
+        "security": 14,
+        "economicIntegrity": 10,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "Bankr x402 Lint",
+      "url": "https://x402.bankr.bot/0x72e45a93491a6acfd02da6ceb71a903f3d3b6d08/lint",
+      "status": 402,
+      "responseTimeMs": 244,
+      "isX402": true,
+      "price": "$0.01 USDC",
+      "total": 76,
+      "band": "caution",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 19,
+        "security": 14,
+        "economicIntegrity": 10,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "LITCOIN Chat",
+      "url": "https://x402.bankr.bot/0xcea8f39419541e6ac9efbdd37b60657b4093ef08/chat",
+      "status": 402,
+      "responseTimeMs": 244,
+      "isX402": true,
+      "price": "$0.001 USDC",
+      "total": 76,
+      "band": "caution",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 19,
+        "security": 14,
+        "economicIntegrity": 10,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "DeFi Yield Compare",
+      "url": "https://x402.bankr.bot/0xfa04c7d627ba707a1ad17e72e094b45150665593/yield-compare",
+      "status": 402,
+      "responseTimeMs": 256,
+      "isX402": true,
+      "price": "$0.01 USDC",
+      "total": 76,
+      "band": "caution",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 19,
+        "security": 14,
+        "economicIntegrity": 10,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "Regen Oracle",
+      "url": "https://x402.bankr.bot/0x538aa4800ae2bd8e90556899514376ab96113a8e/regen-oracle",
+      "status": 402,
+      "responseTimeMs": 247,
+      "isX402": true,
+      "price": "$0.005 USDC",
+      "total": 76,
+      "band": "caution",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 19,
+        "security": 14,
+        "economicIntegrity": 10,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "StableEnrich Firecrawl Scrape",
+      "url": "https://stableenrich.dev/api/firecrawl/scrape",
+      "status": 402,
+      "responseTimeMs": 367,
+      "isX402": true,
+      "price": "$0.0126 USDC",
+      "total": 73,
+      "band": "caution",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": false,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 16,
+        "security": 14,
+        "economicIntegrity": 10,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "AgentCash Send",
+      "url": "https://agentcash.dev/api/send",
+      "status": 402,
+      "responseTimeMs": 325,
+      "isX402": true,
+      "price": "$10000 USDC",
+      "total": 68,
+      "band": "high-risk",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": false,
+        "securityPass": true,
+        "economicCriticalPass": false
+      },
+      "categories": {
+        "protocolConformance": 22,
+        "reliability": 17,
+        "security": 14,
+        "economicIntegrity": 4,
+        "devexDiscovery": 7,
+        "operationalTransparency": 4
+      }
+    },
+    {
+      "name": "Base RPC",
+      "url": "https://mainnet.base.org",
+      "status": 400,
+      "responseTimeMs": 38,
+      "isX402": false,
+      "price": "n/a",
+      "total": 49,
+      "band": "high-risk",
+      "confidence": 65,
+      "gates": {
+        "protocolPass": false,
+        "reliabilityPass": true,
+        "securityPass": false,
+        "economicCriticalPass": false
+      },
+      "categories": {
+        "protocolConformance": 0,
+        "reliability": 25,
+        "security": 8,
+        "economicIntegrity": 8,
+        "devexDiscovery": 4,
+        "operationalTransparency": 4
+      }
+    }
+  ]
+}
