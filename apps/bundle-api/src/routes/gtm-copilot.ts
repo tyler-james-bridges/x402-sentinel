@@ -133,6 +133,11 @@ export async function runGTMCopilotBundle(input: GTMCopilotRequest) {
   const providers = await fetchProvidersFromCanary();
   const { selected, scoredTop5, fallbackUsed } = pickProvider(providers);
   const nowIso = new Date().toISOString();
+  const denyInsufficientEvidence = process.env.SENTINEL_DENY_INSUFFICIENT_EVIDENCE === 'true';
+
+  if (denyInsufficientEvidence && fallbackUsed) {
+    throw new Error('routing denied: no provider satisfied trust gates with sufficient evidence');
+  }
 
   return {
     jobId: `job_${Date.now()}`,
@@ -149,6 +154,7 @@ export async function runGTMCopilotBundle(input: GTMCopilotRequest) {
       audit: {
         policyVersion: 'v1',
         fallbackUsed,
+        denyInsufficientEvidence,
       },
       steps: [
         {

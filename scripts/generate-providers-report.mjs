@@ -1,7 +1,9 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 
 const args = new Set(process.argv.slice(2));
 const strictPayable = args.has('--strict-payable');
+const denyInsufficientEvidence = args.has('--deny-insufficient-evidence');
 
 const fixtureData = JSON.parse(
   await readFile(new URL('../fixtures/providers.json', import.meta.url), 'utf8'),
@@ -102,6 +104,10 @@ async function discover(baseUrlInput) {
 async function probePayable(url, method = 'GET') {
   const started = Date.now();
   let status = -1;
+  let challengeHeader = null;
+  let authenticateHeader = null;
+  let bodyText = '';
+
   try {
     const res = await fetch(url, {
       method,
@@ -109,12 +115,38 @@ async function probePayable(url, method = 'GET') {
       body: method === 'POST' ? '{}' : undefined,
     });
     status = res.status;
+    challengeHeader =
+      res.headers.get('payment-required') ||
+      res.headers.get('x-payment-required') ||
+      null;
+    authenticateHeader = res.headers.get('www-authenticate');
+    bodyText = await res.text();
   } catch {
     status = -1;
   }
   const responseTimeMs = Date.now() - started;
 
-  return { status, responseTimeMs, isX402Like: status === 402 };
+  const bodyHash = bodyText
+    ? createHash('sha256').update(bodyText).digest('hex').slice(0, 16)
+    : null;
+
+  const challengeEvidence = Boolean(challengeHeader || (authenticateHeader && authenticateHeader.toLowerCase().includes('payment')));
+  const bodyEvidence = bodyText.includes('accepts') || bodyText.includes('x402') || bodyText.includes('payment');
+
+  return {
+    status,
+    responseTimeMs,
+    isX402Like: status === 402,
+    challengeEvidence,
+    bodyEvidence,
+    bodyHash,
+    evidenceRefs: [
+      `status:${status}`,
+      `challengeHeader:${challengeEvidence}`,
+      `bodyEvidence:${bodyEvidence}`,
+      `bodyHash:${bodyHash || 'none'}`,
+    ],
+  };
 }
 
 function scorePageDiscovery(result) {
@@ -171,11 +203,17 @@ function scorePayableProbe(result, price) {
   const total = Object.values(categories).reduce((a, b) => a + b, 0);
   const evidence = {
     protocolEvidence: result.status > 0,
+    challengeEvidence: Boolean(result.challengeEvidence),
+    bodyEvidence: Boolean(result.bodyEvidence),
     timingEvidence: result.responseTimeMs > 0,
     priceEvidence: priceValue !== null,
   };
   const evidenceCount =
-    Number(evidence.protocolEvidence) + Number(evidence.timingEvidence) + Number(evidence.priceEvidence);
+    Number(evidence.protocolEvidence) +
+    Number(evidence.challengeEvidence) +
+    Number(evidence.bodyEvidence) +
+    Number(evidence.timingEvidence) +
+    Number(evidence.priceEvidence);
 
   const gates = {
     protocolPass: categories.protocolConformance >= 20,
@@ -256,8 +294,20 @@ const selectedForRouting = endpointScores.filter(
     e.gates.protocolPass &&
     e.gates.reliabilityPass &&
     e.gates.securityPass &&
-    e.gates.economicCriticalPass,
+    e.gates.economicCriticalPass &&
+    e.evidence.challengeEvidence,
 );
+
+const routingDecision = {
+  denyInsufficientEvidence,
+  allowed: selectedForRouting.length > 0 || !denyInsufficientEvidence,
+  reason:
+    selectedForRouting.length > 0
+      ? 'at-least-one-provider-passed'
+      : denyInsufficientEvidence
+        ? 'no-provider-met-evidence-gates'
+        : 'fallback-allowed',
+};
 
 const selectedEndpoints = strictPayable
   ? endpointScores
@@ -281,15 +331,16 @@ const md = [
   '',
   '## Payable Endpoint Probes (routing candidates)',
   '',
-  '| Endpoint | Method | Score | Band | Confidence | Status | Latency | x402-like | Price | Econ Gate |',
-  '|---|---|---:|---|---:|---:|---:|---|---|---|',
+  '| Endpoint | Method | Score | Band | Confidence | Status | Latency | x402-like | Price | Econ Gate | Challenge Evidence |',
+  '|---|---|---:|---|---:|---:|---:|---|---|---|---|',
   ...selectedEndpoints.map(
     (s) =>
-      `| ${s.name} | ${s.method} | ${s.total} | ${s.band} | ${s.confidence} | ${s.status} | ${s.responseTimeMs}ms | ${s.isX402Like ? 'yes' : 'no'} | ${s.price} | ${s.gates.economicCriticalPass ? 'pass' : 'fail'} |`,
+      `| ${s.name} | ${s.method} | ${s.total} | ${s.band} | ${s.confidence} | ${s.status} | ${s.responseTimeMs}ms | ${s.isX402Like ? 'yes' : 'no'} | ${s.price} | ${s.gates.economicCriticalPass ? 'pass' : 'fail'} | ${s.evidence.challengeEvidence ? 'yes' : 'no'} |`,
   ),
   '',
   `Total payable endpoints scored: ${endpointScores.length}`,
   `Routing candidates passing gates: ${selectedForRouting.length}`,
+  `Routing decision: ${routingDecision.allowed ? 'allow' : 'deny'} (${routingDecision.reason})`,
   '',
 ].join('\n');
 
@@ -304,6 +355,7 @@ await writeFile(
       pageScores,
       endpointScores,
       selectedForRouting,
+      routingDecision,
     },
     null,
     2,
