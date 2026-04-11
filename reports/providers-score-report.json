@@ -1,6 +1,12 @@
 {
-  "generatedAt": "2026-04-11T14:31:03.299Z",
+  "generatedAt": "2026-04-11T22:13:42.401Z",
   "mode": "catalog+payable",
+  "withPayment": true,
+  "paymentConfig": {
+    "maxPaymentUsd": 0.01,
+    "paymentLimit": 2
+  },
+  "paidProbeBudgetSpent": 0.001,
   "rubricWeights": {
     "protocolConformance": 25,
     "reliabilityPerformance": 25,
@@ -12,11 +18,48 @@
   "pageScores": [
     {
       "type": "page",
+      "name": "AFK Explore",
+      "url": "https://afkonchain.xyz/explore",
+      "source": "endpoint",
+      "endpointCount": 0,
+      "samplePath": null,
+      "status": 200,
+      "responseTimeMs": 33,
+      "warnings": [
+        "openapi:404",
+        "wellknown:404"
+      ],
+      "baseUrl": "https://afkonchain.xyz/explore",
+      "total": 56,
+      "band": "high-risk",
+      "confidence": 25,
+      "categories": {
+        "protocolConformance": 8,
+        "reliabilityPerformance": 25,
+        "securityAbuseResistance": 10,
+        "economicIntegrity": 8,
+        "devexDiscovery": 3,
+        "operationalTransparency": 2
+      },
+      "evidence": {
+        "discoveryDoc": false,
+        "endpointCountEvidence": false,
+        "samplePathEvidence": false
+      },
+      "gates": {
+        "protocolPass": false,
+        "reliabilityPass": true,
+        "securityPass": false,
+        "economicCriticalPass": false
+      }
+    },
+    {
+      "type": "page",
       "name": "StableEnrich",
       "url": "https://stableenrich.dev/",
       "source": "openapi",
       "endpointCount": 31,
-      "samplePath": "/api/exa/search",
+      "samplePath": "/api/apollo/people-search",
       "warnings": [],
       "baseUrl": "https://stableenrich.dev",
       "total": 68,
@@ -80,7 +123,7 @@
       "url": "https://stableemail.dev/",
       "source": "openapi",
       "endpointCount": 24,
-      "samplePath": "/api/inbox/messages/read",
+      "samplePath": "/api/send",
       "warnings": [],
       "baseUrl": "https://stableemail.dev",
       "total": 68,
@@ -112,7 +155,7 @@
       "url": "https://stableupload.dev/",
       "source": "openapi",
       "endpointCount": 8,
-      "samplePath": "/api/upload",
+      "samplePath": "/api/site",
       "warnings": [],
       "baseUrl": "https://stableupload.dev",
       "total": 68,
@@ -143,8 +186,8 @@
       "name": "StableTravel",
       "url": "https://stabletravel.dev/",
       "source": "openapi",
-      "endpointCount": 72,
-      "samplePath": "/api/flightaware/history/flights/id",
+      "endpointCount": 70,
+      "samplePath": "/api/flightaware/airports/id/flights/departures",
       "warnings": [],
       "baseUrl": "https://stabletravel.dev",
       "total": 68,
@@ -178,7 +221,7 @@
       "endpointCount": 0,
       "samplePath": null,
       "status": 200,
-      "responseTimeMs": 29,
+      "responseTimeMs": 28,
       "warnings": [
         "openapi:404",
         "wellknown:404"
@@ -209,61 +252,24 @@
     },
     {
       "type": "page",
-      "name": "AFK Explore",
-      "url": "https://afkonchain.xyz/explore",
-      "source": "endpoint",
-      "endpointCount": 0,
-      "samplePath": null,
-      "status": 200,
-      "responseTimeMs": 40,
-      "warnings": [
-        "openapi:404",
-        "wellknown:404"
-      ],
-      "baseUrl": "https://afkonchain.xyz/explore",
-      "total": 55,
-      "band": "high-risk",
-      "confidence": 25,
-      "categories": {
-        "protocolConformance": 8,
-        "reliabilityPerformance": 24,
-        "securityAbuseResistance": 10,
-        "economicIntegrity": 8,
-        "devexDiscovery": 3,
-        "operationalTransparency": 2
-      },
-      "evidence": {
-        "discoveryDoc": false,
-        "endpointCountEvidence": false,
-        "samplePathEvidence": false
-      },
-      "gates": {
-        "protocolPass": false,
-        "reliabilityPass": true,
-        "securityPass": false,
-        "economicCriticalPass": false
-      }
-    },
-    {
-      "type": "page",
       "name": "x402scan Resources",
       "url": "https://www.x402scan.com/resources",
       "source": "endpoint",
       "endpointCount": 0,
       "samplePath": null,
       "status": 200,
-      "responseTimeMs": 160,
+      "responseTimeMs": 146,
       "warnings": [
         "openapi:404",
         "wellknown:404"
       ],
       "baseUrl": "https://www.x402scan.com/resources",
-      "total": 52,
+      "total": 53,
       "band": "high-risk",
       "confidence": 25,
       "categories": {
         "protocolConformance": 8,
-        "reliabilityPerformance": 21,
+        "reliabilityPerformance": 22,
         "securityAbuseResistance": 10,
         "economicIntegrity": 8,
         "devexDiscovery": 3,
@@ -285,12 +291,66 @@
   "endpointScores": [
     {
       "type": "payable",
+      "name": "DeFi Yield Compare",
+      "url": "https://x402.bankr.bot/0xfa04c7d627ba707a1ad17e72e094b45150665593/yield-compare",
+      "method": "GET",
+      "price": "$0.01 USDC",
+      "status": 402,
+      "responseTimeMs": 61,
+      "isX402Like": true,
+      "challengeEvidence": true,
+      "bodyEvidence": true,
+      "bodyHash": "a5a60b0295df8f0e",
+      "evidenceRefs": [
+        "status:402",
+        "challengeHeader:true",
+        "bodyEvidence:true",
+        "bodyHash:a5a60b0295df8f0e",
+        "paidProbe:success:false"
+      ],
+      "total": 81,
+      "band": "strong",
+      "confidence": 95,
+      "categories": {
+        "protocolConformance": 22,
+        "reliabilityPerformance": 24,
+        "securityAbuseResistance": 14,
+        "economicIntegrity": 11,
+        "devexDiscovery": 7,
+        "operationalTransparency": 3
+      },
+      "evidence": {
+        "protocolEvidence": true,
+        "challengeEvidence": true,
+        "bodyEvidence": true,
+        "timingEvidence": true,
+        "priceEvidence": true,
+        "settlementEvidence": false
+      },
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "paidProbe": {
+        "attempted": true,
+        "success": false,
+        "paymentMade": null,
+        "settlementEvidenceRefs": [
+          "paidProbe:success:false"
+        ],
+        "error": "Command failed: bankr x402 call https://x402.bankr.bot/0xfa04c7d627ba707a1ad17e72e094b45150665593/yield-compare --method GET --max-payment 0.01 --yes --raw\n- Calling GET https://x402.bankr.bot/0xfa04c7d627ba707a1ad17e72e094b45150665593/yield-compare...\n✖ Call failed\n✗ API error (400): Endpoint returned 500 after payment: \n"
+      }
+    },
+    {
+      "type": "payable",
       "name": "LITCOIN Chat",
       "url": "https://x402.bankr.bot/0xcea8f39419541e6ac9efbdd37b60657b4093ef08/chat",
       "method": "POST",
       "price": "$0.001 USDC",
       "status": 402,
-      "responseTimeMs": 76,
+      "responseTimeMs": 100,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": true,
@@ -301,12 +361,12 @@
         "bodyEvidence:true",
         "bodyHash:1854f1c8490b968b"
       ],
-      "total": 81,
+      "total": 80,
       "band": "strong",
       "confidence": 95,
       "categories": {
         "protocolConformance": 22,
-        "reliabilityPerformance": 24,
+        "reliabilityPerformance": 23,
         "securityAbuseResistance": 14,
         "economicIntegrity": 11,
         "devexDiscovery": 7,
@@ -317,136 +377,8 @@
         "challengeEvidence": true,
         "bodyEvidence": true,
         "timingEvidence": true,
-        "priceEvidence": true
-      },
-      "gates": {
-        "protocolPass": true,
-        "reliabilityPass": true,
-        "securityPass": true,
-        "economicCriticalPass": true
-      }
-    },
-    {
-      "type": "payable",
-      "name": "DeFi Yield Compare",
-      "url": "https://x402.bankr.bot/0xfa04c7d627ba707a1ad17e72e094b45150665593/yield-compare",
-      "method": "GET",
-      "price": "$0.01 USDC",
-      "status": 402,
-      "responseTimeMs": 64,
-      "isX402Like": true,
-      "challengeEvidence": true,
-      "bodyEvidence": true,
-      "bodyHash": "a5a60b0295df8f0e",
-      "evidenceRefs": [
-        "status:402",
-        "challengeHeader:true",
-        "bodyEvidence:true",
-        "bodyHash:a5a60b0295df8f0e"
-      ],
-      "total": 81,
-      "band": "strong",
-      "confidence": 95,
-      "categories": {
-        "protocolConformance": 22,
-        "reliabilityPerformance": 24,
-        "securityAbuseResistance": 14,
-        "economicIntegrity": 11,
-        "devexDiscovery": 7,
-        "operationalTransparency": 3
-      },
-      "evidence": {
-        "protocolEvidence": true,
-        "challengeEvidence": true,
-        "bodyEvidence": true,
-        "timingEvidence": true,
-        "priceEvidence": true
-      },
-      "gates": {
-        "protocolPass": true,
-        "reliabilityPass": true,
-        "securityPass": true,
-        "economicCriticalPass": true
-      }
-    },
-    {
-      "type": "payable",
-      "name": "Trending Base Coins",
-      "url": "https://x402.bankr.bot/0xf47535adb19c8905f9384e423063708651ac2805/trending-base-coins",
-      "method": "GET",
-      "price": "$0.001 USDC",
-      "status": 402,
-      "responseTimeMs": 75,
-      "isX402Like": true,
-      "challengeEvidence": true,
-      "bodyEvidence": true,
-      "bodyHash": "ea33bca1bd3da37e",
-      "evidenceRefs": [
-        "status:402",
-        "challengeHeader:true",
-        "bodyEvidence:true",
-        "bodyHash:ea33bca1bd3da37e"
-      ],
-      "total": 81,
-      "band": "strong",
-      "confidence": 95,
-      "categories": {
-        "protocolConformance": 22,
-        "reliabilityPerformance": 24,
-        "securityAbuseResistance": 14,
-        "economicIntegrity": 11,
-        "devexDiscovery": 7,
-        "operationalTransparency": 3
-      },
-      "evidence": {
-        "protocolEvidence": true,
-        "challengeEvidence": true,
-        "bodyEvidence": true,
-        "timingEvidence": true,
-        "priceEvidence": true
-      },
-      "gates": {
-        "protocolPass": true,
-        "reliabilityPass": true,
-        "securityPass": true,
-        "economicCriticalPass": true
-      }
-    },
-    {
-      "type": "payable",
-      "name": "Regen Oracle",
-      "url": "https://x402.bankr.bot/0x538aa4800ae2bd8e90556899514376ab96113a8e/regen-oracle",
-      "method": "POST",
-      "price": "$0.005 USDC",
-      "status": 402,
-      "responseTimeMs": 61,
-      "isX402Like": true,
-      "challengeEvidence": true,
-      "bodyEvidence": true,
-      "bodyHash": "ca4bbe0d13f6e4df",
-      "evidenceRefs": [
-        "status:402",
-        "challengeHeader:true",
-        "bodyEvidence:true",
-        "bodyHash:ca4bbe0d13f6e4df"
-      ],
-      "total": 81,
-      "band": "strong",
-      "confidence": 95,
-      "categories": {
-        "protocolConformance": 22,
-        "reliabilityPerformance": 24,
-        "securityAbuseResistance": 14,
-        "economicIntegrity": 11,
-        "devexDiscovery": 7,
-        "operationalTransparency": 3
-      },
-      "evidence": {
-        "protocolEvidence": true,
-        "challengeEvidence": true,
-        "bodyEvidence": true,
-        "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": true,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -489,7 +421,8 @@
         "challengeEvidence": true,
         "bodyEvidence": true,
         "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": true,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -500,21 +433,130 @@
     },
     {
       "type": "payable",
-      "name": "Bankr x402 Health",
-      "url": "https://x402.bankr.bot/0x72e45a93491a6acfd02da6ceb71a903f3d3b6d08/health",
-      "method": "POST",
+      "name": "Trending Base Coins",
+      "url": "https://x402.bankr.bot/0xf47535adb19c8905f9384e423063708651ac2805/trending-base-coins",
+      "method": "GET",
       "price": "$0.001 USDC",
       "status": 402,
-      "responseTimeMs": 159,
+      "responseTimeMs": 81,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": true,
-      "bodyHash": "61cb4df8564e4a73",
+      "bodyHash": "ea33bca1bd3da37e",
       "evidenceRefs": [
         "status:402",
         "challengeHeader:true",
         "bodyEvidence:true",
-        "bodyHash:61cb4df8564e4a73"
+        "bodyHash:ea33bca1bd3da37e",
+        "paidProbe:success:true",
+        "paidProbe:amount:0.001",
+        "paidProbe:network:eip155:8453",
+        "paidProbe:scheme:exact"
+      ],
+      "total": 80,
+      "band": "strong",
+      "confidence": 95,
+      "categories": {
+        "protocolConformance": 22,
+        "reliabilityPerformance": 23,
+        "securityAbuseResistance": 14,
+        "economicIntegrity": 11,
+        "devexDiscovery": 7,
+        "operationalTransparency": 3
+      },
+      "evidence": {
+        "protocolEvidence": true,
+        "challengeEvidence": true,
+        "bodyEvidence": true,
+        "timingEvidence": true,
+        "priceEvidence": true,
+        "settlementEvidence": true
+      },
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "paidProbe": {
+        "attempted": true,
+        "success": true,
+        "paymentMade": {
+          "amountUsd": 0.001,
+          "payTo": "0x8AEE621035D93Deb3C0C1177fac252dC2dd501a0",
+          "network": "eip155:8453",
+          "scheme": "exact"
+        },
+        "settlementEvidenceRefs": [
+          "paidProbe:success:true",
+          "paidProbe:amount:0.001",
+          "paidProbe:network:eip155:8453",
+          "paidProbe:scheme:exact"
+        ],
+        "error": null
+      }
+    },
+    {
+      "type": "payable",
+      "name": "Regen Oracle",
+      "url": "https://x402.bankr.bot/0x538aa4800ae2bd8e90556899514376ab96113a8e/regen-oracle",
+      "method": "POST",
+      "price": "$0.005 USDC",
+      "status": 402,
+      "responseTimeMs": 80,
+      "isX402Like": true,
+      "challengeEvidence": true,
+      "bodyEvidence": true,
+      "bodyHash": "ca4bbe0d13f6e4df",
+      "evidenceRefs": [
+        "status:402",
+        "challengeHeader:true",
+        "bodyEvidence:true",
+        "bodyHash:ca4bbe0d13f6e4df"
+      ],
+      "total": 80,
+      "band": "strong",
+      "confidence": 95,
+      "categories": {
+        "protocolConformance": 22,
+        "reliabilityPerformance": 23,
+        "securityAbuseResistance": 14,
+        "economicIntegrity": 11,
+        "devexDiscovery": 7,
+        "operationalTransparency": 3
+      },
+      "evidence": {
+        "protocolEvidence": true,
+        "challengeEvidence": true,
+        "bodyEvidence": true,
+        "timingEvidence": true,
+        "priceEvidence": true,
+        "settlementEvidence": false
+      },
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      }
+    },
+    {
+      "type": "payable",
+      "name": "x402scan Merchants",
+      "url": "https://www.x402scan.com/api/x402/merchants",
+      "method": "GET",
+      "price": "$0.01 USDC",
+      "status": 402,
+      "responseTimeMs": 125,
+      "isX402Like": true,
+      "challengeEvidence": true,
+      "bodyEvidence": false,
+      "bodyHash": null,
+      "evidenceRefs": [
+        "status:402",
+        "challengeHeader:true",
+        "bodyEvidence:false",
+        "bodyHash:none"
       ],
       "total": 79,
       "band": "caution",
@@ -530,9 +572,10 @@
       "evidence": {
         "protocolEvidence": true,
         "challengeEvidence": true,
-        "bodyEvidence": true,
+        "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": true,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -548,7 +591,7 @@
       "method": "GET",
       "price": "$0.01 USDC",
       "status": 402,
-      "responseTimeMs": 154,
+      "responseTimeMs": 124,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": false,
@@ -575,7 +618,8 @@
         "challengeEvidence": true,
         "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": true,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -591,7 +635,7 @@
       "method": "GET",
       "price": "$0.01 USDC",
       "status": 402,
-      "responseTimeMs": 136,
+      "responseTimeMs": 128,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": false,
@@ -618,7 +662,8 @@
         "challengeEvidence": true,
         "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": true,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -629,21 +674,21 @@
     },
     {
       "type": "payable",
-      "name": "Bankr x402 Lint",
-      "url": "https://x402.bankr.bot/0x72e45a93491a6acfd02da6ceb71a903f3d3b6d08/lint",
+      "name": "Bankr x402 Health",
+      "url": "https://x402.bankr.bot/0x72e45a93491a6acfd02da6ceb71a903f3d3b6d08/health",
       "method": "POST",
-      "price": "$0.01 USDC",
+      "price": "$0.001 USDC",
       "status": 402,
       "responseTimeMs": 180,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": true,
-      "bodyHash": "9f37aebd2a1ce0ca",
+      "bodyHash": "61cb4df8564e4a73",
       "evidenceRefs": [
         "status:402",
         "challengeHeader:true",
         "bodyEvidence:true",
-        "bodyHash:9f37aebd2a1ce0ca"
+        "bodyHash:61cb4df8564e4a73"
       ],
       "total": 78,
       "band": "caution",
@@ -661,7 +706,8 @@
         "challengeEvidence": true,
         "bodyEvidence": true,
         "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": true,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -677,7 +723,7 @@
       "method": "POST",
       "price": "$5 USDC",
       "status": 402,
-      "responseTimeMs": 300,
+      "responseTimeMs": 192,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": false,
@@ -688,12 +734,12 @@
         "bodyEvidence:false",
         "bodyHash:none"
       ],
-      "total": 75,
+      "total": 78,
       "band": "caution",
       "confidence": 95,
       "categories": {
         "protocolConformance": 22,
-        "reliabilityPerformance": 18,
+        "reliabilityPerformance": 21,
         "securityAbuseResistance": 14,
         "economicIntegrity": 11,
         "devexDiscovery": 7,
@@ -704,7 +750,8 @@
         "challengeEvidence": true,
         "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": true,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -715,12 +762,100 @@
     },
     {
       "type": "payable",
+      "name": "Bankr x402 Lint",
+      "url": "https://x402.bankr.bot/0x72e45a93491a6acfd02da6ceb71a903f3d3b6d08/lint",
+      "method": "POST",
+      "price": "$0.01 USDC",
+      "status": 402,
+      "responseTimeMs": 230,
+      "isX402Like": true,
+      "challengeEvidence": true,
+      "bodyEvidence": true,
+      "bodyHash": "9f37aebd2a1ce0ca",
+      "evidenceRefs": [
+        "status:402",
+        "challengeHeader:true",
+        "bodyEvidence:true",
+        "bodyHash:9f37aebd2a1ce0ca"
+      ],
+      "total": 77,
+      "band": "caution",
+      "confidence": 95,
+      "categories": {
+        "protocolConformance": 22,
+        "reliabilityPerformance": 20,
+        "securityAbuseResistance": 14,
+        "economicIntegrity": 11,
+        "devexDiscovery": 7,
+        "operationalTransparency": 3
+      },
+      "evidence": {
+        "protocolEvidence": true,
+        "challengeEvidence": true,
+        "bodyEvidence": true,
+        "timingEvidence": true,
+        "priceEvidence": true,
+        "settlementEvidence": false
+      },
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      }
+    },
+    {
+      "type": "payable",
+      "name": "dTelecom x402",
+      "url": "https://x402.dtelecom.org/v1/credits/purchase",
+      "method": "POST",
+      "price": "$0 USDC",
+      "status": 402,
+      "responseTimeMs": 194,
+      "isX402Like": true,
+      "challengeEvidence": true,
+      "bodyEvidence": false,
+      "bodyHash": "44136fa355b3678a",
+      "evidenceRefs": [
+        "status:402",
+        "challengeHeader:true",
+        "bodyEvidence:false",
+        "bodyHash:44136fa355b3678a"
+      ],
+      "total": 73,
+      "band": "caution",
+      "confidence": 95,
+      "categories": {
+        "protocolConformance": 22,
+        "reliabilityPerformance": 21,
+        "securityAbuseResistance": 14,
+        "economicIntegrity": 6,
+        "devexDiscovery": 7,
+        "operationalTransparency": 3
+      },
+      "evidence": {
+        "protocolEvidence": true,
+        "challengeEvidence": true,
+        "bodyEvidence": false,
+        "timingEvidence": true,
+        "priceEvidence": true,
+        "settlementEvidence": false
+      },
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": false
+      }
+    },
+    {
+      "type": "payable",
       "name": "StableEnrich Exa Search",
       "url": "https://stableenrich.dev/api/exa/search",
       "method": "POST",
       "price": "n/a",
       "status": 402,
-      "responseTimeMs": 259,
+      "responseTimeMs": 264,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": false,
@@ -747,7 +882,8 @@
         "challengeEvidence": true,
         "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": false
+        "priceEvidence": false,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -763,7 +899,7 @@
       "method": "POST",
       "price": "n/a",
       "status": 402,
-      "responseTimeMs": 256,
+      "responseTimeMs": 261,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": false,
@@ -790,7 +926,8 @@
         "challengeEvidence": true,
         "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": false
+        "priceEvidence": false,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -806,7 +943,7 @@
       "method": "POST",
       "price": "n/a",
       "status": 402,
-      "responseTimeMs": 311,
+      "responseTimeMs": 326,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": false,
@@ -817,52 +954,9 @@
         "bodyEvidence:false",
         "bodyHash:none"
       ],
-      "total": 70,
-      "band": "caution",
-      "confidence": 80,
-      "categories": {
-        "protocolConformance": 22,
-        "reliabilityPerformance": 18,
-        "securityAbuseResistance": 14,
-        "economicIntegrity": 6,
-        "devexDiscovery": 7,
-        "operationalTransparency": 3
-      },
-      "evidence": {
-        "protocolEvidence": true,
-        "challengeEvidence": true,
-        "bodyEvidence": false,
-        "timingEvidence": true,
-        "priceEvidence": false
-      },
-      "gates": {
-        "protocolPass": true,
-        "reliabilityPass": true,
-        "securityPass": true,
-        "economicCriticalPass": false
-      }
-    },
-    {
-      "type": "payable",
-      "name": "dTelecom x402",
-      "url": "https://x402.dtelecom.org/v1/credits/purchase",
-      "method": "POST",
-      "price": "$0 USDC",
-      "status": 402,
-      "responseTimeMs": 322,
-      "isX402Like": true,
-      "challengeEvidence": true,
-      "bodyEvidence": false,
-      "bodyHash": "44136fa355b3678a",
-      "evidenceRefs": [
-        "status:402",
-        "challengeHeader:true",
-        "bodyEvidence:false",
-        "bodyHash:44136fa355b3678a"
-      ],
       "total": 69,
       "band": "experimental",
-      "confidence": 95,
+      "confidence": 80,
       "categories": {
         "protocolConformance": 22,
         "reliabilityPerformance": 17,
@@ -876,7 +970,8 @@
         "challengeEvidence": true,
         "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": false,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -892,7 +987,7 @@
       "method": "POST",
       "price": "n/a",
       "status": 402,
-      "responseTimeMs": 390,
+      "responseTimeMs": 375,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": false,
@@ -919,7 +1014,8 @@
         "challengeEvidence": true,
         "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": false
+        "priceEvidence": false,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -935,7 +1031,7 @@
       "method": "POST",
       "price": "n/a",
       "status": 402,
-      "responseTimeMs": 383,
+      "responseTimeMs": 385,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": false,
@@ -962,7 +1058,8 @@
         "challengeEvidence": true,
         "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": false
+        "priceEvidence": false,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -973,55 +1070,12 @@
     },
     {
       "type": "payable",
-      "name": "x402scan Merchants",
-      "url": "https://www.x402scan.com/api/x402/merchants",
-      "method": "GET",
-      "price": "$0.01 USDC",
-      "status": 402,
-      "responseTimeMs": 584,
-      "isX402Like": true,
-      "challengeEvidence": true,
-      "bodyEvidence": false,
-      "bodyHash": null,
-      "evidenceRefs": [
-        "status:402",
-        "challengeHeader:true",
-        "bodyEvidence:false",
-        "bodyHash:none"
-      ],
-      "total": 68,
-      "band": "experimental",
-      "confidence": 95,
-      "categories": {
-        "protocolConformance": 22,
-        "reliabilityPerformance": 11,
-        "securityAbuseResistance": 14,
-        "economicIntegrity": 11,
-        "devexDiscovery": 7,
-        "operationalTransparency": 3
-      },
-      "evidence": {
-        "protocolEvidence": true,
-        "challengeEvidence": true,
-        "bodyEvidence": false,
-        "timingEvidence": true,
-        "priceEvidence": true
-      },
-      "gates": {
-        "protocolPass": true,
-        "reliabilityPass": false,
-        "securityPass": true,
-        "economicCriticalPass": true
-      }
-    },
-    {
-      "type": "payable",
       "name": "StableUpload File",
       "url": "https://stableupload.dev/api/upload",
       "method": "POST",
       "price": "n/a",
       "status": 402,
-      "responseTimeMs": 400,
+      "responseTimeMs": 453,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": false,
@@ -1032,12 +1086,12 @@
         "bodyEvidence:false",
         "bodyHash:none"
       ],
-      "total": 67,
+      "total": 66,
       "band": "experimental",
       "confidence": 80,
       "categories": {
         "protocolConformance": 22,
-        "reliabilityPerformance": 15,
+        "reliabilityPerformance": 14,
         "securityAbuseResistance": 14,
         "economicIntegrity": 6,
         "devexDiscovery": 7,
@@ -1048,7 +1102,8 @@
         "challengeEvidence": true,
         "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": false
+        "priceEvidence": false,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -1064,7 +1119,7 @@
       "method": "POST",
       "price": "$10000 USDC",
       "status": 402,
-      "responseTimeMs": 499,
+      "responseTimeMs": 437,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": false,
@@ -1075,12 +1130,12 @@
         "bodyEvidence:false",
         "bodyHash:none"
       ],
-      "total": 63,
+      "total": 65,
       "band": "experimental",
       "confidence": 95,
       "categories": {
         "protocolConformance": 22,
-        "reliabilityPerformance": 13,
+        "reliabilityPerformance": 15,
         "securityAbuseResistance": 14,
         "economicIntegrity": 4,
         "devexDiscovery": 7,
@@ -1091,7 +1146,8 @@
         "challengeEvidence": true,
         "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": true,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -1107,7 +1163,7 @@
       "method": "POST",
       "price": "n/a",
       "status": 400,
-      "responseTimeMs": 179,
+      "responseTimeMs": 132,
       "isX402Like": false,
       "challengeEvidence": false,
       "bodyEvidence": false,
@@ -1118,12 +1174,12 @@
         "bodyEvidence:false",
         "bodyHash:18e5ff658f1fae08"
       ],
-      "total": 46,
+      "total": 47,
       "band": "high-risk",
       "confidence": 65,
       "categories": {
         "protocolConformance": 5,
-        "reliabilityPerformance": 21,
+        "reliabilityPerformance": 22,
         "securityAbuseResistance": 8,
         "economicIntegrity": 6,
         "devexDiscovery": 3,
@@ -1134,7 +1190,8 @@
         "challengeEvidence": false,
         "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": false
+        "priceEvidence": false,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": false,
@@ -1147,12 +1204,66 @@
   "selectedForRouting": [
     {
       "type": "payable",
+      "name": "DeFi Yield Compare",
+      "url": "https://x402.bankr.bot/0xfa04c7d627ba707a1ad17e72e094b45150665593/yield-compare",
+      "method": "GET",
+      "price": "$0.01 USDC",
+      "status": 402,
+      "responseTimeMs": 61,
+      "isX402Like": true,
+      "challengeEvidence": true,
+      "bodyEvidence": true,
+      "bodyHash": "a5a60b0295df8f0e",
+      "evidenceRefs": [
+        "status:402",
+        "challengeHeader:true",
+        "bodyEvidence:true",
+        "bodyHash:a5a60b0295df8f0e",
+        "paidProbe:success:false"
+      ],
+      "total": 81,
+      "band": "strong",
+      "confidence": 95,
+      "categories": {
+        "protocolConformance": 22,
+        "reliabilityPerformance": 24,
+        "securityAbuseResistance": 14,
+        "economicIntegrity": 11,
+        "devexDiscovery": 7,
+        "operationalTransparency": 3
+      },
+      "evidence": {
+        "protocolEvidence": true,
+        "challengeEvidence": true,
+        "bodyEvidence": true,
+        "timingEvidence": true,
+        "priceEvidence": true,
+        "settlementEvidence": false
+      },
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "paidProbe": {
+        "attempted": true,
+        "success": false,
+        "paymentMade": null,
+        "settlementEvidenceRefs": [
+          "paidProbe:success:false"
+        ],
+        "error": "Command failed: bankr x402 call https://x402.bankr.bot/0xfa04c7d627ba707a1ad17e72e094b45150665593/yield-compare --method GET --max-payment 0.01 --yes --raw\n- Calling GET https://x402.bankr.bot/0xfa04c7d627ba707a1ad17e72e094b45150665593/yield-compare...\n✖ Call failed\n✗ API error (400): Endpoint returned 500 after payment: \n"
+      }
+    },
+    {
+      "type": "payable",
       "name": "LITCOIN Chat",
       "url": "https://x402.bankr.bot/0xcea8f39419541e6ac9efbdd37b60657b4093ef08/chat",
       "method": "POST",
       "price": "$0.001 USDC",
       "status": 402,
-      "responseTimeMs": 76,
+      "responseTimeMs": 100,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": true,
@@ -1163,12 +1274,12 @@
         "bodyEvidence:true",
         "bodyHash:1854f1c8490b968b"
       ],
-      "total": 81,
+      "total": 80,
       "band": "strong",
       "confidence": 95,
       "categories": {
         "protocolConformance": 22,
-        "reliabilityPerformance": 24,
+        "reliabilityPerformance": 23,
         "securityAbuseResistance": 14,
         "economicIntegrity": 11,
         "devexDiscovery": 7,
@@ -1179,136 +1290,8 @@
         "challengeEvidence": true,
         "bodyEvidence": true,
         "timingEvidence": true,
-        "priceEvidence": true
-      },
-      "gates": {
-        "protocolPass": true,
-        "reliabilityPass": true,
-        "securityPass": true,
-        "economicCriticalPass": true
-      }
-    },
-    {
-      "type": "payable",
-      "name": "DeFi Yield Compare",
-      "url": "https://x402.bankr.bot/0xfa04c7d627ba707a1ad17e72e094b45150665593/yield-compare",
-      "method": "GET",
-      "price": "$0.01 USDC",
-      "status": 402,
-      "responseTimeMs": 64,
-      "isX402Like": true,
-      "challengeEvidence": true,
-      "bodyEvidence": true,
-      "bodyHash": "a5a60b0295df8f0e",
-      "evidenceRefs": [
-        "status:402",
-        "challengeHeader:true",
-        "bodyEvidence:true",
-        "bodyHash:a5a60b0295df8f0e"
-      ],
-      "total": 81,
-      "band": "strong",
-      "confidence": 95,
-      "categories": {
-        "protocolConformance": 22,
-        "reliabilityPerformance": 24,
-        "securityAbuseResistance": 14,
-        "economicIntegrity": 11,
-        "devexDiscovery": 7,
-        "operationalTransparency": 3
-      },
-      "evidence": {
-        "protocolEvidence": true,
-        "challengeEvidence": true,
-        "bodyEvidence": true,
-        "timingEvidence": true,
-        "priceEvidence": true
-      },
-      "gates": {
-        "protocolPass": true,
-        "reliabilityPass": true,
-        "securityPass": true,
-        "economicCriticalPass": true
-      }
-    },
-    {
-      "type": "payable",
-      "name": "Trending Base Coins",
-      "url": "https://x402.bankr.bot/0xf47535adb19c8905f9384e423063708651ac2805/trending-base-coins",
-      "method": "GET",
-      "price": "$0.001 USDC",
-      "status": 402,
-      "responseTimeMs": 75,
-      "isX402Like": true,
-      "challengeEvidence": true,
-      "bodyEvidence": true,
-      "bodyHash": "ea33bca1bd3da37e",
-      "evidenceRefs": [
-        "status:402",
-        "challengeHeader:true",
-        "bodyEvidence:true",
-        "bodyHash:ea33bca1bd3da37e"
-      ],
-      "total": 81,
-      "band": "strong",
-      "confidence": 95,
-      "categories": {
-        "protocolConformance": 22,
-        "reliabilityPerformance": 24,
-        "securityAbuseResistance": 14,
-        "economicIntegrity": 11,
-        "devexDiscovery": 7,
-        "operationalTransparency": 3
-      },
-      "evidence": {
-        "protocolEvidence": true,
-        "challengeEvidence": true,
-        "bodyEvidence": true,
-        "timingEvidence": true,
-        "priceEvidence": true
-      },
-      "gates": {
-        "protocolPass": true,
-        "reliabilityPass": true,
-        "securityPass": true,
-        "economicCriticalPass": true
-      }
-    },
-    {
-      "type": "payable",
-      "name": "Regen Oracle",
-      "url": "https://x402.bankr.bot/0x538aa4800ae2bd8e90556899514376ab96113a8e/regen-oracle",
-      "method": "POST",
-      "price": "$0.005 USDC",
-      "status": 402,
-      "responseTimeMs": 61,
-      "isX402Like": true,
-      "challengeEvidence": true,
-      "bodyEvidence": true,
-      "bodyHash": "ca4bbe0d13f6e4df",
-      "evidenceRefs": [
-        "status:402",
-        "challengeHeader:true",
-        "bodyEvidence:true",
-        "bodyHash:ca4bbe0d13f6e4df"
-      ],
-      "total": 81,
-      "band": "strong",
-      "confidence": 95,
-      "categories": {
-        "protocolConformance": 22,
-        "reliabilityPerformance": 24,
-        "securityAbuseResistance": 14,
-        "economicIntegrity": 11,
-        "devexDiscovery": 7,
-        "operationalTransparency": 3
-      },
-      "evidence": {
-        "protocolEvidence": true,
-        "challengeEvidence": true,
-        "bodyEvidence": true,
-        "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": true,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -1351,7 +1334,8 @@
         "challengeEvidence": true,
         "bodyEvidence": true,
         "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": true,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -1362,21 +1346,130 @@
     },
     {
       "type": "payable",
-      "name": "Bankr x402 Health",
-      "url": "https://x402.bankr.bot/0x72e45a93491a6acfd02da6ceb71a903f3d3b6d08/health",
-      "method": "POST",
+      "name": "Trending Base Coins",
+      "url": "https://x402.bankr.bot/0xf47535adb19c8905f9384e423063708651ac2805/trending-base-coins",
+      "method": "GET",
       "price": "$0.001 USDC",
       "status": 402,
-      "responseTimeMs": 159,
+      "responseTimeMs": 81,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": true,
-      "bodyHash": "61cb4df8564e4a73",
+      "bodyHash": "ea33bca1bd3da37e",
       "evidenceRefs": [
         "status:402",
         "challengeHeader:true",
         "bodyEvidence:true",
-        "bodyHash:61cb4df8564e4a73"
+        "bodyHash:ea33bca1bd3da37e",
+        "paidProbe:success:true",
+        "paidProbe:amount:0.001",
+        "paidProbe:network:eip155:8453",
+        "paidProbe:scheme:exact"
+      ],
+      "total": 80,
+      "band": "strong",
+      "confidence": 95,
+      "categories": {
+        "protocolConformance": 22,
+        "reliabilityPerformance": 23,
+        "securityAbuseResistance": 14,
+        "economicIntegrity": 11,
+        "devexDiscovery": 7,
+        "operationalTransparency": 3
+      },
+      "evidence": {
+        "protocolEvidence": true,
+        "challengeEvidence": true,
+        "bodyEvidence": true,
+        "timingEvidence": true,
+        "priceEvidence": true,
+        "settlementEvidence": true
+      },
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      },
+      "paidProbe": {
+        "attempted": true,
+        "success": true,
+        "paymentMade": {
+          "amountUsd": 0.001,
+          "payTo": "0x8AEE621035D93Deb3C0C1177fac252dC2dd501a0",
+          "network": "eip155:8453",
+          "scheme": "exact"
+        },
+        "settlementEvidenceRefs": [
+          "paidProbe:success:true",
+          "paidProbe:amount:0.001",
+          "paidProbe:network:eip155:8453",
+          "paidProbe:scheme:exact"
+        ],
+        "error": null
+      }
+    },
+    {
+      "type": "payable",
+      "name": "Regen Oracle",
+      "url": "https://x402.bankr.bot/0x538aa4800ae2bd8e90556899514376ab96113a8e/regen-oracle",
+      "method": "POST",
+      "price": "$0.005 USDC",
+      "status": 402,
+      "responseTimeMs": 80,
+      "isX402Like": true,
+      "challengeEvidence": true,
+      "bodyEvidence": true,
+      "bodyHash": "ca4bbe0d13f6e4df",
+      "evidenceRefs": [
+        "status:402",
+        "challengeHeader:true",
+        "bodyEvidence:true",
+        "bodyHash:ca4bbe0d13f6e4df"
+      ],
+      "total": 80,
+      "band": "strong",
+      "confidence": 95,
+      "categories": {
+        "protocolConformance": 22,
+        "reliabilityPerformance": 23,
+        "securityAbuseResistance": 14,
+        "economicIntegrity": 11,
+        "devexDiscovery": 7,
+        "operationalTransparency": 3
+      },
+      "evidence": {
+        "protocolEvidence": true,
+        "challengeEvidence": true,
+        "bodyEvidence": true,
+        "timingEvidence": true,
+        "priceEvidence": true,
+        "settlementEvidence": false
+      },
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      }
+    },
+    {
+      "type": "payable",
+      "name": "x402scan Merchants",
+      "url": "https://www.x402scan.com/api/x402/merchants",
+      "method": "GET",
+      "price": "$0.01 USDC",
+      "status": 402,
+      "responseTimeMs": 125,
+      "isX402Like": true,
+      "challengeEvidence": true,
+      "bodyEvidence": false,
+      "bodyHash": null,
+      "evidenceRefs": [
+        "status:402",
+        "challengeHeader:true",
+        "bodyEvidence:false",
+        "bodyHash:none"
       ],
       "total": 79,
       "band": "caution",
@@ -1392,9 +1485,10 @@
       "evidence": {
         "protocolEvidence": true,
         "challengeEvidence": true,
-        "bodyEvidence": true,
+        "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": true,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -1410,7 +1504,7 @@
       "method": "GET",
       "price": "$0.01 USDC",
       "status": 402,
-      "responseTimeMs": 154,
+      "responseTimeMs": 124,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": false,
@@ -1437,7 +1531,8 @@
         "challengeEvidence": true,
         "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": true,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -1453,7 +1548,7 @@
       "method": "GET",
       "price": "$0.01 USDC",
       "status": 402,
-      "responseTimeMs": 136,
+      "responseTimeMs": 128,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": false,
@@ -1480,7 +1575,8 @@
         "challengeEvidence": true,
         "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": true,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -1491,21 +1587,21 @@
     },
     {
       "type": "payable",
-      "name": "Bankr x402 Lint",
-      "url": "https://x402.bankr.bot/0x72e45a93491a6acfd02da6ceb71a903f3d3b6d08/lint",
+      "name": "Bankr x402 Health",
+      "url": "https://x402.bankr.bot/0x72e45a93491a6acfd02da6ceb71a903f3d3b6d08/health",
       "method": "POST",
-      "price": "$0.01 USDC",
+      "price": "$0.001 USDC",
       "status": 402,
       "responseTimeMs": 180,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": true,
-      "bodyHash": "9f37aebd2a1ce0ca",
+      "bodyHash": "61cb4df8564e4a73",
       "evidenceRefs": [
         "status:402",
         "challengeHeader:true",
         "bodyEvidence:true",
-        "bodyHash:9f37aebd2a1ce0ca"
+        "bodyHash:61cb4df8564e4a73"
       ],
       "total": 78,
       "band": "caution",
@@ -1523,7 +1619,8 @@
         "challengeEvidence": true,
         "bodyEvidence": true,
         "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": true,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,
@@ -1539,7 +1636,7 @@
       "method": "POST",
       "price": "$5 USDC",
       "status": 402,
-      "responseTimeMs": 300,
+      "responseTimeMs": 192,
       "isX402Like": true,
       "challengeEvidence": true,
       "bodyEvidence": false,
@@ -1550,12 +1647,12 @@
         "bodyEvidence:false",
         "bodyHash:none"
       ],
-      "total": 75,
+      "total": 78,
       "band": "caution",
       "confidence": 95,
       "categories": {
         "protocolConformance": 22,
-        "reliabilityPerformance": 18,
+        "reliabilityPerformance": 21,
         "securityAbuseResistance": 14,
         "economicIntegrity": 11,
         "devexDiscovery": 7,
@@ -1566,7 +1663,52 @@
         "challengeEvidence": true,
         "bodyEvidence": false,
         "timingEvidence": true,
-        "priceEvidence": true
+        "priceEvidence": true,
+        "settlementEvidence": false
+      },
+      "gates": {
+        "protocolPass": true,
+        "reliabilityPass": true,
+        "securityPass": true,
+        "economicCriticalPass": true
+      }
+    },
+    {
+      "type": "payable",
+      "name": "Bankr x402 Lint",
+      "url": "https://x402.bankr.bot/0x72e45a93491a6acfd02da6ceb71a903f3d3b6d08/lint",
+      "method": "POST",
+      "price": "$0.01 USDC",
+      "status": 402,
+      "responseTimeMs": 230,
+      "isX402Like": true,
+      "challengeEvidence": true,
+      "bodyEvidence": true,
+      "bodyHash": "9f37aebd2a1ce0ca",
+      "evidenceRefs": [
+        "status:402",
+        "challengeHeader:true",
+        "bodyEvidence:true",
+        "bodyHash:9f37aebd2a1ce0ca"
+      ],
+      "total": 77,
+      "band": "caution",
+      "confidence": 95,
+      "categories": {
+        "protocolConformance": 22,
+        "reliabilityPerformance": 20,
+        "securityAbuseResistance": 14,
+        "economicIntegrity": 11,
+        "devexDiscovery": 7,
+        "operationalTransparency": 3
+      },
+      "evidence": {
+        "protocolEvidence": true,
+        "challengeEvidence": true,
+        "bodyEvidence": true,
+        "timingEvidence": true,
+        "priceEvidence": true,
+        "settlementEvidence": false
       },
       "gates": {
         "protocolPass": true,

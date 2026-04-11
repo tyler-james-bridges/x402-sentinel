@@ -1,9 +1,21 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 
-const args = new Set(process.argv.slice(2));
+const rawArgs = process.argv.slice(2);
+const args = new Set(rawArgs);
 const strictPayable = args.has('--strict-payable');
 const denyInsufficientEvidence = args.has('--deny-insufficient-evidence');
+const withPayment = args.has('--with-payment');
+
+function getArgValue(flag, fallback) {
+  const idx = rawArgs.indexOf(flag);
+  if (idx >= 0 && rawArgs[idx + 1]) return rawArgs[idx + 1];
+  return fallback;
+}
+
+const maxPaymentUsd = Number(getArgValue('--max-payment', '0.01'));
+const paymentLimit = Number(getArgValue('--payment-limit', '3'));
 
 const fixtureData = JSON.parse(
   await readFile(new URL('../fixtures/providers.json', import.meta.url), 'utf8'),
@@ -130,8 +142,11 @@ async function probePayable(url, method = 'GET') {
     ? createHash('sha256').update(bodyText).digest('hex').slice(0, 16)
     : null;
 
-  const challengeEvidence = Boolean(challengeHeader || (authenticateHeader && authenticateHeader.toLowerCase().includes('payment')));
-  const bodyEvidence = bodyText.includes('accepts') || bodyText.includes('x402') || bodyText.includes('payment');
+  const challengeEvidence = Boolean(
+    challengeHeader || (authenticateHeader && authenticateHeader.toLowerCase().includes('payment')),
+  );
+  const bodyEvidence =
+    bodyText.includes('accepts') || bodyText.includes('x402') || bodyText.includes('payment');
 
   return {
     status,
@@ -207,6 +222,7 @@ function scorePayableProbe(result, price) {
     bodyEvidence: Boolean(result.bodyEvidence),
     timingEvidence: result.responseTimeMs > 0,
     priceEvidence: priceValue !== null,
+    settlementEvidence: false,
   };
   const evidenceCount =
     Number(evidence.protocolEvidence) +
@@ -230,6 +246,62 @@ function scorePayableProbe(result, price) {
     evidence,
     gates,
   };
+}
+
+function parseBankrCallJson(output) {
+  const first = output.indexOf('{');
+  const last = output.lastIndexOf('}');
+  if (first < 0 || last <= first) return null;
+  try {
+    return JSON.parse(output.slice(first, last + 1));
+  } catch {
+    return null;
+  }
+}
+
+function runPaidProbe(endpoint) {
+  try {
+    const out = execFileSync(
+      'bankr',
+      [
+        'x402',
+        'call',
+        endpoint.url,
+        '--method',
+        endpoint.method,
+        '--max-payment',
+        String(maxPaymentUsd),
+        '--yes',
+        '--raw',
+      ],
+      { encoding: 'utf8', timeout: 120000 },
+    );
+
+    const parsed = parseBankrCallJson(out);
+    const paymentMade = parsed?.paymentMade ?? null;
+    const success = Boolean(parsed?.success && paymentMade);
+
+    return {
+      attempted: true,
+      success,
+      paymentMade,
+      settlementEvidenceRefs: [
+        `paidProbe:success:${success}`,
+        `paidProbe:amount:${paymentMade?.amountUsd ?? 'none'}`,
+        `paidProbe:network:${paymentMade?.network ?? 'none'}`,
+        `paidProbe:scheme:${paymentMade?.scheme ?? 'none'}`,
+      ],
+      error: null,
+    };
+  } catch (err) {
+    return {
+      attempted: true,
+      success: false,
+      paymentMade: null,
+      settlementEvidenceRefs: ['paidProbe:success:false'],
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
 }
 
 async function getCanaryEndpoints() {
@@ -260,15 +332,17 @@ for (const p of providerPages) {
 }
 
 const canaryEndpoints = await getCanaryEndpoints();
-const mergedPayables = [...payableEndpoints, ...canaryEndpoints]
-  .reduce((acc, cur) => {
+const mergedPayables = [...payableEndpoints, ...canaryEndpoints].reduce(
+  (acc, cur) => {
     const key = `${cur.method || 'GET'}::${cur.url}`;
     if (!acc.map.has(key)) {
       acc.map.set(key, true);
       acc.items.push(cur);
     }
     return acc;
-  }, { map: new Map(), items: [] }).items;
+  },
+  { map: new Map(), items: [] },
+).items;
 
 const endpointScores = [];
 for (const p of mergedPayables) {
@@ -285,7 +359,38 @@ for (const p of mergedPayables) {
   });
 }
 
-pageScores.sort((a, b) => b.total - a.total);
+// Optional paid probes for settlement evidence
+let paidProbeBudgetSpent = 0;
+if (withPayment) {
+  const payableCandidates = endpointScores
+    .filter((e) => e.isX402Like && e.gates.protocolPass)
+    .filter((e) => {
+      const p = parsePrice(e.price);
+      return p !== null && p <= maxPaymentUsd;
+    })
+    .sort((a, b) => {
+      const methodScoreA = a.method === 'GET' ? 0 : 1;
+      const methodScoreB = b.method === 'GET' ? 0 : 1;
+      if (methodScoreA !== methodScoreB) return methodScoreA - methodScoreB;
+      return a.responseTimeMs - b.responseTimeMs;
+    })
+    .slice(0, paymentLimit);
+
+  for (const candidate of payableCandidates) {
+    const paid = runPaidProbe(candidate);
+    paidProbeBudgetSpent += paid.success ? Number(paid.paymentMade?.amountUsd || 0) : 0;
+
+    candidate.paidProbe = paid;
+    candidate.evidence.settlementEvidence = paid.success;
+    candidate.evidenceRefs = [...(candidate.evidenceRefs || []), ...paid.settlementEvidenceRefs];
+
+    // Trusted band requires settlement evidence
+    if (candidate.band === 'trusted' && !candidate.evidence.settlementEvidence) {
+      candidate.band = 'strong';
+    }
+  }
+}
+
 endpointScores.sort((a, b) => b.total - a.total);
 
 const selectedForRouting = endpointScores.filter(
@@ -319,6 +424,8 @@ const md = [
   `Generated: ${new Date().toISOString()}`,
   `Mode: ${strictPayable ? 'strict-payable' : 'catalog+payable'}`,
   `Rubric Weights: ${JSON.stringify(RUBRIC_WEIGHTS)}`,
+  `Paid Probe Mode: ${withPayment ? 'enabled' : 'disabled'}`,
+  withPayment ? `Paid Probe Budget Spent: $${paidProbeBudgetSpent.toFixed(4)}` : '',
   '',
   '## Provider Pages (catalog/discovery scoring)',
   '',
@@ -331,11 +438,11 @@ const md = [
   '',
   '## Payable Endpoint Probes (routing candidates)',
   '',
-  '| Endpoint | Method | Score | Band | Confidence | Status | Latency | x402-like | Price | Econ Gate | Challenge Evidence |',
-  '|---|---|---:|---|---:|---:|---:|---|---|---|---|',
+  '| Endpoint | Method | Score | Band | Confidence | Status | Latency | x402-like | Price | Econ Gate | Challenge Evidence | Settlement Evidence |',
+  '|---|---|---:|---|---:|---:|---:|---|---|---|---|---|',
   ...selectedEndpoints.map(
     (s) =>
-      `| ${s.name} | ${s.method} | ${s.total} | ${s.band} | ${s.confidence} | ${s.status} | ${s.responseTimeMs}ms | ${s.isX402Like ? 'yes' : 'no'} | ${s.price} | ${s.gates.economicCriticalPass ? 'pass' : 'fail'} | ${s.evidence.challengeEvidence ? 'yes' : 'no'} |`,
+      `| ${s.name} | ${s.method} | ${s.total} | ${s.band} | ${s.confidence} | ${s.status} | ${s.responseTimeMs}ms | ${s.isX402Like ? 'yes' : 'no'} | ${s.price} | ${s.gates.economicCriticalPass ? 'pass' : 'fail'} | ${s.evidence.challengeEvidence ? 'yes' : 'no'} | ${s.evidence.settlementEvidence ? 'yes' : 'no'} |`,
   ),
   '',
   `Total payable endpoints scored: ${endpointScores.length}`,
@@ -351,6 +458,9 @@ await writeFile(
     {
       generatedAt: new Date().toISOString(),
       mode: strictPayable ? 'strict-payable' : 'catalog+payable',
+      withPayment,
+      paymentConfig: { maxPaymentUsd, paymentLimit },
+      paidProbeBudgetSpent,
       rubricWeights: RUBRIC_WEIGHTS,
       pageScores,
       endpointScores,
