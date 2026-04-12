@@ -248,6 +248,20 @@ function scorePayableProbe(result, price) {
   };
 }
 
+function enforceTrustedRequiresSettlementEvidence(item) {
+  if (item.band === 'trusted' && !item.evidence?.settlementEvidence) {
+    return {
+      ...item,
+      band: 'strong',
+      trustAdjustments: [
+        ...(item.trustAdjustments || []),
+        'downgraded-trusted-without-settlement-evidence',
+      ],
+    };
+  }
+  return item;
+}
+
 function parseBankrCallJson(output) {
   const first = output.indexOf('{');
   const last = output.lastIndexOf('}');
@@ -393,7 +407,10 @@ if (withPayment) {
 
 endpointScores.sort((a, b) => b.total - a.total);
 
-const selectedForRouting = endpointScores.filter(
+const adjustedEndpointScores = endpointScores.map(enforceTrustedRequiresSettlementEvidence);
+adjustedEndpointScores.sort((a, b) => b.total - a.total);
+
+const selectedForRouting = adjustedEndpointScores.filter(
   (e) =>
     e.isX402Like &&
     e.gates.protocolPass &&
@@ -415,8 +432,8 @@ const routingDecision = {
 };
 
 const selectedEndpoints = strictPayable
-  ? endpointScores
-  : endpointScores.slice(0, Math.max(20, endpointScores.length));
+  ? adjustedEndpointScores
+  : adjustedEndpointScores.slice(0, Math.max(20, adjustedEndpointScores.length));
 
 const md = [
   '# Providers Score Snapshot',
@@ -445,7 +462,7 @@ const md = [
       `| ${s.name} | ${s.method} | ${s.total} | ${s.band} | ${s.confidence} | ${s.status} | ${s.responseTimeMs}ms | ${s.isX402Like ? 'yes' : 'no'} | ${s.price} | ${s.gates.economicCriticalPass ? 'pass' : 'fail'} | ${s.evidence.challengeEvidence ? 'yes' : 'no'} | ${s.evidence.settlementEvidence ? 'yes' : 'no'} |`,
   ),
   '',
-  `Total payable endpoints scored: ${endpointScores.length}`,
+  `Total payable endpoints scored: ${adjustedEndpointScores.length}`,
   `Routing candidates passing gates: ${selectedForRouting.length}`,
   `Routing decision: ${routingDecision.allowed ? 'allow' : 'deny'} (${routingDecision.reason})`,
   '',
@@ -463,7 +480,7 @@ await writeFile(
       paidProbeBudgetSpent,
       rubricWeights: RUBRIC_WEIGHTS,
       pageScores,
-      endpointScores,
+      endpointScores: adjustedEndpointScores,
       selectedForRouting,
       routingDecision,
     },

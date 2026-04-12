@@ -78,10 +78,14 @@ function scoreCanaryEndpoint(endpoint: CanaryEndpoint): ProviderScore {
     protocolEvidence: endpoint.status > 0,
     priceEvidence: priceValue !== null,
     timingEvidence: endpoint.responseTimeMs > 0,
+    settlementEvidence: false,
   };
 
   const evidenceCount = Number(evidence.protocolEvidence) + Number(evidence.priceEvidence) + Number(evidence.timingEvidence);
   const confidence = Math.min(95, 40 + evidenceCount * 15);
+
+  const band = gradeBand(total);
+  const finalBand = band === 'trusted' && !evidence.settlementEvidence ? 'strong' : band;
 
   return {
     name: endpoint.name,
@@ -89,7 +93,7 @@ function scoreCanaryEndpoint(endpoint: CanaryEndpoint): ProviderScore {
     status: endpoint.status,
     responseTimeMs: endpoint.responseTimeMs,
     total,
-    band: gradeBand(total),
+    band: finalBand,
     confidence,
     evidence,
     gates: {
