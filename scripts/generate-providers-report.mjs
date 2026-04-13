@@ -435,6 +435,19 @@ const selectedEndpoints = strictPayable
   ? adjustedEndpointScores
   : adjustedEndpointScores.slice(0, Math.max(20, adjustedEndpointScores.length));
 
+const settlementReliability = adjustedEndpointScores
+  .filter((e) => e.paidProbe)
+  .map((e) => ({
+    name: e.name,
+    url: e.url,
+    attempts: 1,
+    successes: e.paidProbe?.success ? 1 : 0,
+    successRate: e.paidProbe?.success ? 1 : 0,
+    amountUsd: Number(e.paidProbe?.paymentMade?.amountUsd || 0),
+    lastError: e.paidProbe?.error || null,
+  }))
+  .sort((a, b) => b.successRate - a.successRate);
+
 const md = [
   '# Providers Score Snapshot',
   '',
@@ -466,6 +479,17 @@ const md = [
   `Routing candidates passing gates: ${selectedForRouting.length}`,
   `Routing decision: ${routingDecision.allowed ? 'allow' : 'deny'} (${routingDecision.reason})`,
   '',
+  '## Settlement Reliability (paid probes)',
+  '',
+  '| Endpoint | Attempts | Successes | Success Rate | Paid USD | Last Error |',
+  '|---|---:|---:|---:|---:|---|',
+  ...(settlementReliability.length
+    ? settlementReliability.map(
+        (s) =>
+          `| ${s.name} | ${s.attempts} | ${s.successes} | ${(s.successRate * 100).toFixed(0)}% | ${s.amountUsd.toFixed(4)} | ${s.lastError ? 'yes' : 'no'} |`,
+      )
+    : ['| (no paid probes yet) | 0 | 0 | 0% | 0.0000 | n/a |']),
+  '',
 ].join('\n');
 
 await mkdir(new URL('../reports/', import.meta.url), { recursive: true });
@@ -483,6 +507,7 @@ await writeFile(
       endpointScores: adjustedEndpointScores,
       selectedForRouting,
       routingDecision,
+      settlementReliability,
     },
     null,
     2,
