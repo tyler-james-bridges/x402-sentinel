@@ -73,3 +73,18 @@ Strict deny response shape (`422`):
 - Goal: consume Bazaar MCP tools (`search_resources`, `proxy_tool_call`) with automatic payment handling via `@x402/mcp`.
 - MCP endpoint: `https://api.cdp.coinbase.com/platform/v2/x402/discovery/mcp`
 - Smoke test: `npm run mcp:smoke`
+
+## Probe refresh automation (GitHub Actions)
+- Workflow: `.github/workflows/probe-refresh.yml`
+- Schedule: every 2 hours + manual dispatch
+- Runs:
+  - `npm run probe:paid`
+  - `npm run probe:publish` (builds `reports/indexer-settlement-payload.json`)
+- Optional direct publish to indexer/canary:
+  - `SENTINEL_INDEXER_PUBLISH_URL` (GitHub secret)
+  - `SENTINEL_INDEXER_PUBLISH_TOKEN` (GitHub secret, optional)
+
+Local publish helper:
+```bash
+npm run probe:publish -- --to https://your-indexer.example/api/settlement-evidence
+```
