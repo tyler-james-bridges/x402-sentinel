@@ -551,6 +551,7 @@ export function pickProvider(
     strong[0] ??
     caution.find((candidate) => candidate.evidence.settlementEvidence) ??
     caution[0] ??
+    scored.find((candidate) => candidate.withinPriceCeiling) ??
     scored[0];
 
   if (!selected) {
