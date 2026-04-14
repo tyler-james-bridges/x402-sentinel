@@ -3,9 +3,43 @@ import { runGTMCopilotBundle } from './routes/gtm-copilot.js';
 
 const PORT = Number(process.env.PORT || 4021);
 
-function json(res: ServerResponse, status: number, body: unknown) {
-  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' });
+function json(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}) {
+  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', ...headers });
   res.end(JSON.stringify(body));
+}
+
+function hasPaymentProof(req: IncomingMessage): boolean {
+  const paymentProof = req.headers['x-payment-proof'];
+  const auth = req.headers.authorization;
+  if (typeof paymentProof === 'string' && paymentProof.trim().length > 0) return true;
+  if (typeof auth === 'string' && auth.toLowerCase().startsWith('payment ')) return true;
+  return false;
+}
+
+function paymentRequired(res: ServerResponse) {
+  const challenge = {
+    x402Version: 2,
+    accepts: [
+      {
+        scheme: 'exact',
+        network: process.env.SENTINEL_PAYMENT_NETWORK || 'eip155:8453',
+        amount: process.env.SENTINEL_PAYMENT_AMOUNT || '10000',
+        asset: process.env.SENTINEL_PAYMENT_ASSET || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+        payTo: process.env.SENTINEL_PAYMENT_PAYTO || '0x0000000000000000000000000000000000000000',
+      },
+    ],
+  };
+
+  return json(
+    res,
+    402,
+    { error: 'payment required', challenge },
+    {
+      'www-authenticate': 'Payment',
+      'payment-required': JSON.stringify(challenge),
+      'x-payment-required': JSON.stringify(challenge),
+    },
+  );
 }
 
 async function readJsonBody(req: IncomingMessage): Promise<any> {
@@ -25,6 +59,24 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
     }
 
     if (req.method === 'POST' && req.url === '/api/bundles/gtm-copilot') {
+      const input = await readJsonBody(req);
+      if (!Array.isArray(input?.targets) || typeof input?.goal !== 'string') {
+        return json(res, 400, { error: 'invalid payload: targets[] and goal are required' });
+      }
+
+      const result = await runGTMCopilotBundle({
+        targets: input.targets,
+        goal: input.goal,
+        budget: typeof input.budget === 'number' ? input.budget : undefined,
+      });
+      return json(res, 200, result);
+    }
+
+    if (req.method === 'POST' && req.url === '/api/workflow/execute') {
+      if (!hasPaymentProof(req)) {
+        return paymentRequired(res);
+      }
+
       const input = await readJsonBody(req);
       if (!Array.isArray(input?.targets) || typeof input?.goal !== 'string') {
         return json(res, 400, { error: 'invalid payload: targets[] and goal are required' });

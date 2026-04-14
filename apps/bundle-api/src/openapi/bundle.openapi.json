@@ -5,6 +5,35 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/workflow/execute": {
+      "post": {
+        "summary": "Execute paid workflow route (x402-protected)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "targets": { "type": "array", "items": { "type": "string" } },
+                  "goal": { "type": "string" },
+                  "budget": { "type": "number" }
+                },
+                "required": ["targets", "goal"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Workflow executed"
+          },
+          "402": {
+            "description": "Payment required"
+          }
+        }
+      }
+    },
     "/api/bundles/gtm-copilot": {
       "post": {
         "summary": "Run GTM Copilot bundle",
