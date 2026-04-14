@@ -28,8 +28,43 @@ pnpm --filter @x402-sentinel/probe test
 ## Reporting
 ```bash
 npm run report:providers
-npm run report:providers -- --with-payment --max-payment 0.01 --payment-limit 3
+npm run probe:paid
 ```
 
 Paid probe safety/budget runbook:
 - `docs/paid-probe-safety-budget-runbook.md`
+
+## Bundle API: GTM copilot routing
+- `POST /api/bundles/gtm-copilot`
+- Required body: `{ "targets": string[], "goal": string, "budget"?: number }`
+
+Policy env vars:
+- `SENTINEL_PRICE_CEILING_USD` (default `0.01`)
+- `SENTINEL_DENY_MODE=hard|soft`
+  - `hard`: deny candidates with insufficient settlement evidence (returns `422`)
+  - `soft`: return best ceiling-compliant candidate and include reason codes in response
+- Backward compatibility: `SENTINEL_DENY_INSUFFICIENT_EVIDENCE=true` maps to `SENTINEL_DENY_MODE=hard` when `SENTINEL_DENY_MODE` is unset
+
+Strict deny response shape (`422`):
+```json
+{
+  "code": "INSUFFICIENT_SETTLEMENT_EVIDENCE",
+  "error": "routing denied: selected provider lacks settlement evidence",
+  "reasonCodes": ["TRUST_GATES_PASSED", "INSUFFICIENT_SETTLEMENT_EVIDENCE", "DENY_INSUFFICIENT_EVIDENCE"],
+  "fallbackUsed": false,
+  "top5": [],
+  "action": "collect_more_settlement_data_or_disable_strict_mode"
+}
+```
+
+## Paid workflow endpoint
+- `POST /api/workflow/execute`
+- Returns `402 Payment Required` unless one of these is present:
+  - `x-payment-proof` header
+  - `Authorization: Payment ...`
+
+## Bazaar MCP setup (CDP)
+- Setup/runbook: `docs/bazaar-mcp-setup.md`
+- Goal: consume Bazaar MCP tools (`search_resources`, `proxy_tool_call`) with automatic payment handling via `@x402/mcp`.
+- MCP endpoint: `https://api.cdp.coinbase.com/platform/v2/x402/discovery/mcp`
+- Smoke test: `npm run mcp:smoke`

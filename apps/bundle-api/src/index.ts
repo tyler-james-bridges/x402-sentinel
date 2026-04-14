@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { runGTMCopilotBundle } from './routes/gtm-copilot.js';
+import { RoutingDeniedError, runGTMCopilotBundle } from './routes/gtm-copilot.js';
 
 const PORT = Number(process.env.PORT || 4021);
 
@@ -92,6 +92,17 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
 
     return json(res, 404, { error: 'not found' });
   } catch (error) {
+    if (error instanceof RoutingDeniedError) {
+      return json(res, 422, {
+        code: 'INSUFFICIENT_SETTLEMENT_EVIDENCE',
+        error: error.message,
+        reasonCodes: error.reasonCodes,
+        fallbackUsed: error.diagnostics.fallbackUsed,
+        top5: error.diagnostics.top5,
+        action: 'collect_more_settlement_data_or_disable_strict_mode',
+      });
+    }
+
     return json(res, 500, {
       error: error instanceof Error ? error.message : 'internal error',
     });

@@ -398,7 +398,14 @@ async function fetchProvidersFromIndexer(indexerUrl: string): Promise<CanaryEndp
 }
 
 export async function runGTMCopilotBundle(input: GTMCopilotRequest) {
-  const denyInsufficientEvidence = process.env.SENTINEL_DENY_INSUFFICIENT_EVIDENCE === 'true';
+  const denyModeRaw = (process.env.SENTINEL_DENY_MODE ?? '').trim().toLowerCase();
+  const denyMode: 'hard' | 'soft' =
+    denyModeRaw === 'hard' || denyModeRaw === 'soft'
+      ? (denyModeRaw as 'hard' | 'soft')
+      : process.env.SENTINEL_DENY_INSUFFICIENT_EVIDENCE === 'true'
+        ? 'hard'
+        : 'soft';
+  const denyInsufficientEvidence = denyMode === 'hard';
   const indexerUrl = process.env.SENTINEL_INDEXER_URL ?? 'https://canary.0x402.sh/api/health';
   const priceCeilingUsd = Number(process.env.SENTINEL_PRICE_CEILING_USD ?? '0.01');
 
@@ -427,6 +434,7 @@ export async function runGTMCopilotBundle(input: GTMCopilotRequest) {
         policyVersion: 'v2',
         fallbackUsed,
         denyInsufficientEvidence,
+        denyMode,
         reasonCodes,
         indexerUrl,
         priceCeilingUsd,
