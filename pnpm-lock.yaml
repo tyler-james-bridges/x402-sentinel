@@ -24,6 +24,9 @@ importers:
         specifier: ^2.47.17
         version: 2.47.17(typescript@5.9.3)(zod@3.25.76)
     devDependencies:
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.19.17
       ajv:
         specifier: ^8.18.0
         version: 8.18.0
@@ -85,6 +88,9 @@ packages:
 
   '@scure/bip39@1.6.0':
     resolution: {integrity: sha512-+lF0BbLiJNwVlev4eKelw1WWLaiKXw7sSl8T6FvBlWkdX+94aGJ4o8XjUdlyhTCjd8c+B3KT3JfS8P0bLRNU6A==}
+
+  '@types/node@22.19.17':
+    resolution: {integrity: sha512-wGdMcf+vPYM6jikpS/qhg6WiqSV/OhG+jeeHT/KlVqxYfD40iYJf9/AE1uQxVWFvU7MipKRkRv8NSHiCGgPr8Q==}
 
   '@x402/core@2.10.0':
     resolution: {integrity: sha512-n9Exnt1HN4LFaINaPYhk6Cy3ICBt0e46XN1Uo5i6efIZfIoqP6pY8ONSX/M9bU4F1fpvMj0JZ3xdcBZCiGInfw==}
@@ -456,6 +462,9 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
+  undici-types@6.21.0:
+    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
+
   unpipe@1.0.0:
     resolution: {integrity: sha512-pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ==}
     engines: {node: '>= 0.8'}
@@ -550,6 +559,10 @@ snapshots:
     dependencies:
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
+
+  '@types/node@22.19.17':
+    dependencies:
+      undici-types: 6.21.0
 
   '@x402/core@2.10.0':
     dependencies:
@@ -960,6 +973,8 @@ snapshots:
       mime-types: 3.0.2
 
   typescript@5.9.3: {}
+
+  undici-types@6.21.0: {}
 
   unpipe@1.0.0: {}
 

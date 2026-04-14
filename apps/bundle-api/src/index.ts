@@ -1,14 +1,14 @@
-import { createServer } from 'node:http';
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { runGTMCopilotBundle } from './routes/gtm-copilot.js';
 
 const PORT = Number(process.env.PORT || 4021);
 
-function json(res: any, status: number, body: unknown) {
+function json(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(body));
 }
 
-async function readJsonBody(req: any): Promise<any> {
+async function readJsonBody(req: IncomingMessage): Promise<any> {
   const chunks: Buffer[] = [];
   for await (const chunk of req) chunks.push(Buffer.from(chunk));
   if (chunks.length === 0) return {};
@@ -16,7 +16,7 @@ async function readJsonBody(req: any): Promise<any> {
   return raw ? JSON.parse(raw) : {};
 }
 
-const server = createServer(async (req, res) => {
+const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
   try {
     if (!req.url || !req.method) return json(res, 400, { error: 'bad request' });
 
