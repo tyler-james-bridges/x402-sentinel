@@ -307,12 +307,16 @@ function compareCandidates(a: ProviderScore, b: ProviderScore): number {
   const trustB = Number(b.gates.protocolPass && b.gates.reliabilityPass && b.gates.securityPass && b.gates.economicCriticalPass);
   if (trustA !== trustB) return trustB - trustA;
 
-  if (a.settlementReliability !== b.settlementReliability) return b.settlementReliability - a.settlementReliability;
-  if (a.responseTimeMs !== b.responseTimeMs) return a.responseTimeMs - b.responseTimeMs;
-
   const ceilingA = Number(a.withinPriceCeiling);
   const ceilingB = Number(b.withinPriceCeiling);
   if (ceilingA !== ceilingB) return ceilingB - ceilingA;
+
+  const settlementEvidenceA = Number(a.evidence.settlementEvidence);
+  const settlementEvidenceB = Number(b.evidence.settlementEvidence);
+  if (settlementEvidenceA !== settlementEvidenceB) return settlementEvidenceB - settlementEvidenceA;
+
+  if (a.settlementReliability !== b.settlementReliability) return b.settlementReliability - a.settlementReliability;
+  if (a.responseTimeMs !== b.responseTimeMs) return a.responseTimeMs - b.responseTimeMs;
 
   const priceA = a.priceValue === null ? Number.POSITIVE_INFINITY : a.priceValue;
   const priceB = b.priceValue === null ? Number.POSITIVE_INFINITY : b.priceValue;
@@ -333,7 +337,11 @@ export function pickProvider(
     .map((endpoint) => scoreCanaryEndpoint(endpoint, priceCeilingUsd))
     .sort(compareCandidates);
 
-  const selected = scored[0];
+  const selected =
+    scored.find((candidate) => candidate.withinPriceCeiling && candidate.evidence.settlementEvidence) ??
+    scored.find((candidate) => candidate.withinPriceCeiling) ??
+    scored[0];
+
   if (!selected) {
     const reasonCodes: RoutingReasonCode[] = ['ROUTING_NO_PROVIDERS'];
     if (denyInsufficientEvidence) reasonCodes.push('DENY_INSUFFICIENT_EVIDENCE');
