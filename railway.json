@@ -5,7 +5,7 @@
     "buildCommand": "pnpm install --frozen-lockfile=false && pnpm --filter @x402-sentinel/bundle-api build"
   },
   "deploy": {
-    "startCommand": "pnpm --filter @x402-sentinel/bundle-api start",
+    "startCommand": "node apps/bundle-api/dist/index.js",
     "healthcheckPath": "/health",
     "restartPolicyType": "ON_FAILURE"
   }
