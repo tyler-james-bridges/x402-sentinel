@@ -2,7 +2,50 @@
   "openapi": "3.1.0",
   "info": {
     "title": "x402 Sentinel Bundle API",
-    "version": "0.1.0"
+    "version": "0.2.0"
+  },
+  "components": {
+    "schemas": {
+      "SharedBundleInput": {
+        "type": "object",
+        "properties": {
+          "targets": { "type": "array", "items": { "type": "string" } },
+          "goal": { "type": "string" },
+          "budget": { "type": "number" }
+        },
+        "required": ["targets", "goal"]
+      },
+      "TokenInput": {
+        "oneOf": [
+          { "type": "string" },
+          {
+            "type": "object",
+            "properties": {
+              "address": { "type": "string" },
+              "symbol": { "type": "string" }
+            },
+            "required": ["address"]
+          }
+        ]
+      },
+      "TokenRiskScreenInput": {
+        "allOf": [
+          { "$ref": "#/components/schemas/SharedBundleInput" },
+          {
+            "type": "object",
+            "properties": {
+              "chainId": { "type": "string" },
+              "tokens": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/TokenInput" },
+                "minItems": 1
+              }
+            },
+            "required": ["tokens"]
+          }
+        ]
+      }
+    }
   },
   "paths": {
     "/api/workflow/execute": {
@@ -13,24 +56,38 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "targets": { "type": "array", "items": { "type": "string" } },
-                  "goal": { "type": "string" },
-                  "budget": { "type": "number" }
-                },
-                "required": ["targets", "goal"]
+                "oneOf": [
+                  {
+                    "allOf": [
+                      { "$ref": "#/components/schemas/SharedBundleInput" },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "bundleId": { "type": "string", "enum": ["gtm-copilot"] }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "allOf": [
+                      { "$ref": "#/components/schemas/TokenRiskScreenInput" },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "bundleId": { "type": "string", "enum": ["token-risk-screen"] }
+                        },
+                        "required": ["bundleId"]
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
         },
         "responses": {
-          "200": {
-            "description": "Workflow executed"
-          },
-          "402": {
-            "description": "Payment required"
-          }
+          "200": { "description": "Workflow executed" },
+          "402": { "description": "Payment required" }
         }
       }
     },
@@ -41,15 +98,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "targets": { "type": "array", "items": { "type": "string" } },
-                  "goal": { "type": "string" },
-                  "budget": { "type": "number" }
-                },
-                "required": ["targets", "goal"]
-              }
+              "schema": { "$ref": "#/components/schemas/SharedBundleInput" }
             }
           }
         },
@@ -69,6 +118,24 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/bundles/token-risk-screen": {
+      "post": {
+        "summary": "Run Token Risk Screen bundle",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TokenRiskScreenInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token risk screen executed"
           }
         }
       }

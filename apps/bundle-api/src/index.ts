@@ -1,5 +1,11 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { RoutingDeniedError, runGTMCopilotBundle } from './routes/gtm-copilot.js';
+import { runTokenRiskScreenBundle } from './routes/token-risk-screen.js';
+import {
+  parseGTMCopilotInput,
+  parseTokenRiskScreenInput,
+  parseWorkflowBundleId,
+} from './schemas/bundle-input.js';
 
 const PORT = Number(process.env.PORT || 4021);
 
@@ -59,16 +65,24 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
     }
 
     if (req.method === 'POST' && req.url === '/api/bundles/gtm-copilot') {
-      const input = await readJsonBody(req);
-      if (!Array.isArray(input?.targets) || typeof input?.goal !== 'string') {
-        return json(res, 400, { error: 'invalid payload: targets[] and goal are required' });
+      const rawInput = await readJsonBody(req);
+      const parsed = parseGTMCopilotInput(rawInput);
+      if (!parsed.ok) {
+        return json(res, 400, { error: parsed.error });
       }
 
-      const result = await runGTMCopilotBundle({
-        targets: input.targets,
-        goal: input.goal,
-        budget: typeof input.budget === 'number' ? input.budget : undefined,
-      });
+      const result = await runGTMCopilotBundle(parsed.data);
+      return json(res, 200, result);
+    }
+
+    if (req.method === 'POST' && req.url === '/api/bundles/token-risk-screen') {
+      const rawInput = await readJsonBody(req);
+      const parsed = parseTokenRiskScreenInput(rawInput);
+      if (!parsed.ok) {
+        return json(res, 400, { error: parsed.error });
+      }
+
+      const result = await runTokenRiskScreenBundle(parsed.data);
       return json(res, 200, result);
     }
 
@@ -77,16 +91,25 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
         return paymentRequired(res);
       }
 
-      const input = await readJsonBody(req);
-      if (!Array.isArray(input?.targets) || typeof input?.goal !== 'string') {
-        return json(res, 400, { error: 'invalid payload: targets[] and goal are required' });
+      const rawInput = await readJsonBody(req);
+      const bundleId = parseWorkflowBundleId(rawInput);
+
+      if (bundleId === 'token-risk-screen') {
+        const parsed = parseTokenRiskScreenInput(rawInput);
+        if (!parsed.ok) {
+          return json(res, 400, { error: parsed.error });
+        }
+
+        const result = await runTokenRiskScreenBundle(parsed.data);
+        return json(res, 200, result);
       }
 
-      const result = await runGTMCopilotBundle({
-        targets: input.targets,
-        goal: input.goal,
-        budget: typeof input.budget === 'number' ? input.budget : undefined,
-      });
+      const parsed = parseGTMCopilotInput(rawInput);
+      if (!parsed.ok) {
+        return json(res, 400, { error: parsed.error });
+      }
+
+      const result = await runGTMCopilotBundle(parsed.data);
       return json(res, 200, result);
     }
 
