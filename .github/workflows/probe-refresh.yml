@@ -1,0 +1,51 @@
+name: Probe Refresh
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Run paid probe refresh
+        run: npm run probe:paid
+
+      - name: Build settlement publish payload
+        run: npm run probe:publish
+
+      - name: Publish settlement payload to indexer (optional)
+        if: ${{ secrets.SENTINEL_INDEXER_PUBLISH_URL != '' }}
+        env:
+          SENTINEL_INDEXER_PUBLISH_URL: ${{ secrets.SENTINEL_INDEXER_PUBLISH_URL }}
+          SENTINEL_INDEXER_PUBLISH_TOKEN: ${{ secrets.SENTINEL_INDEXER_PUBLISH_TOKEN }}
+        run: npm run probe:publish -- --to "$SENTINEL_INDEXER_PUBLISH_URL"
+
+      - name: Upload reports artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: probe-refresh-reports
+          path: |
+            reports/providers-score-report.json
+            reports/providers-score-report.md
+            reports/indexer-settlement-payload.json
