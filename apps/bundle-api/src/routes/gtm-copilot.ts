@@ -4,6 +4,14 @@ export interface GTMCopilotRequest {
   budget?: number;
 }
 
+interface WorkflowStepResult {
+  stepId: string;
+  step: string;
+  timestamp: string;
+  status: 'ok' | 'warn' | 'error' | 'skipped';
+  details?: Record<string, unknown>;
+}
+
 export interface CanaryEndpoint {
   name: string;
   url: string;
@@ -69,6 +77,106 @@ export class RoutingDeniedError extends Error {
     this.reasonCodes = reasonCodes;
     this.diagnostics = diagnostics;
   }
+}
+
+function dedupeTargets(targets: string[]): string[] {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const t of targets) {
+    const normalized = String(t || '').trim();
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    ordered.push(normalized);
+  }
+  return ordered;
+}
+
+async function invokeProviderPreview(
+  selected: ProviderScore | null,
+  input: GTMCopilotRequest,
+): Promise<{ status: 'ok' | 'warn' | 'skipped'; details: Record<string, unknown> }> {
+  if (!selected?.url) {
+    return {
+      status: 'skipped',
+      details: { reason: 'no-provider-selected' },
+    };
+  }
+
+  if (process.env.SENTINEL_BUNDLE_DRY_RUN === 'true') {
+    return {
+      status: 'skipped',
+      details: { reason: 'dry-run-enabled', provider: selected.url },
+    };
+  }
+
+  const started = Date.now();
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(selected.url, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: {
+        'x-sentinel-workflow': 'gtm-copilot',
+        'x-sentinel-goal': input.goal,
+      },
+    });
+    clearTimeout(timeout);
+
+    const latencyMs = Date.now() - started;
+    const status = res.status;
+    const ok = status < 500;
+    return {
+      status: ok ? 'ok' : 'warn',
+      details: {
+        provider: selected.url,
+        status,
+        latencyMs,
+      },
+    };
+  } catch (error) {
+    return {
+      status: 'warn',
+      details: {
+        provider: selected.url,
+        error: error instanceof Error ? error.message : 'provider-preview-failed',
+      },
+    };
+  }
+}
+
+function buildBundleArtifact(input: GTMCopilotRequest, selected: ProviderScore | null) {
+  const targets = dedupeTargets(input.targets);
+  const generatedAt = new Date().toISOString();
+
+  const actions = targets.map((target, index) => ({
+    id: `action_${index + 1}`,
+    target,
+    query: `${input.goal} :: ${target}`,
+    provider: selected?.url ?? 'none',
+    priority: index === 0 ? 'high' : 'normal',
+    status: 'queued',
+  }));
+
+  return {
+    generatedAt,
+    workflow: 'gtm-copilot',
+    goal: input.goal,
+    targetCount: targets.length,
+    targets,
+    provider: selected
+      ? {
+          name: selected.name,
+          url: selected.url,
+          score: selected.total,
+          band: selected.band,
+        }
+      : null,
+    actions,
+    summary: `Prepared ${actions.length} workflow actions for goal \"${input.goal}\"${selected ? ` using ${selected.name}` : ''}.`,
+  };
 }
 
 function parsePrice(price?: string): number | null {
@@ -410,9 +518,54 @@ export async function runGTMCopilotBundle(input: GTMCopilotRequest) {
   const priceCeilingUsd = Number(process.env.SENTINEL_PRICE_CEILING_USD ?? '0.01');
 
   const providers = await fetchProvidersFromIndexer(indexerUrl);
+  const workflowSteps: WorkflowStepResult[] = [];
+
+  workflowSteps.push({
+    stepId: 'step-intake-001',
+    step: 'intake-validation',
+    timestamp: new Date().toISOString(),
+    status: 'ok',
+    details: {
+      targetCount: dedupeTargets(input.targets).length,
+      budget: input.budget ?? null,
+    },
+  });
+
   const { selected, scoredTop5, fallbackUsed, reasonCodes } = pickProvider(providers, {
     priceCeilingUsd: Number.isFinite(priceCeilingUsd) ? priceCeilingUsd : Number.POSITIVE_INFINITY,
     denyInsufficientEvidence,
+  });
+
+  workflowSteps.push({
+    stepId: 'step-provider-selection-001',
+    step: 'provider-selection',
+    timestamp: new Date().toISOString(),
+    status: selected ? 'ok' : 'warn',
+    details: {
+      selected: selected?.url ?? null,
+      fallbackUsed,
+      reasonCodes,
+    },
+  });
+
+  const providerPreview = await invokeProviderPreview(selected, input);
+  workflowSteps.push({
+    stepId: 'step-provider-preview-001',
+    step: 'provider-preview',
+    timestamp: new Date().toISOString(),
+    status: providerPreview.status,
+    details: providerPreview.details,
+  });
+
+  const bundleArtifact = buildBundleArtifact(input, selected);
+  workflowSteps.push({
+    stepId: 'step-artifact-001',
+    step: 'artifact-generation',
+    timestamp: new Date().toISOString(),
+    status: 'ok',
+    details: {
+      actions: bundleArtifact.actions.length,
+    },
   });
 
   const nowIso = new Date().toISOString();
@@ -421,6 +574,7 @@ export async function runGTMCopilotBundle(input: GTMCopilotRequest) {
     jobId: `job_${Date.now()}`,
     createdAt: nowIso,
     providerSelected: selected?.url ?? 'none',
+    bundleArtifact,
     scoreSnapshot: {
       selected,
       top5: scoredTop5,
@@ -439,30 +593,7 @@ export async function runGTMCopilotBundle(input: GTMCopilotRequest) {
         indexerUrl,
         priceCeilingUsd,
       },
-      steps: [
-        {
-          stepId: 'step-provider-selection-001',
-          step: 'provider-selection',
-          timestamp: nowIso,
-          status: selected?.status,
-          score: selected?.total,
-          band: selected?.band,
-          confidence: selected?.confidence,
-          gates: selected?.gates,
-          reasonCodes,
-          evidenceRefs: selected
-            ? [
-                `provider:${selected.url}`,
-                `status:${selected.status}`,
-                `latencyMs:${selected.responseTimeMs}`,
-                `priceEvidence:${selected.evidence.priceEvidence}`,
-                `settlementEvidence:${selected.evidence.settlementEvidence}`,
-                `settlementReliability:${selected.settlementReliability}`,
-              ]
-            : [],
-          fallbackUsed,
-        },
-      ],
+      steps: workflowSteps,
     },
     input,
   };
