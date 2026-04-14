@@ -33,6 +33,8 @@ interface CanaryHealthPayload {
 export type RoutingReasonCode =
   | 'TRUST_GATES_PASSED'
   | 'FALLBACK_NO_TRUST_GATE_PASS'
+  | 'FALLBACK_TIER_STRONG'
+  | 'FALLBACK_TIER_CAUTION'
   | 'DENY_INSUFFICIENT_EVIDENCE'
   | 'ROUTING_NO_PROVIDERS'
   | 'PRICE_ABOVE_CEILING'
@@ -111,40 +113,64 @@ async function invokeProviderPreview(
     };
   }
 
-  const started = Date.now();
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(selected.url, {
-      method: 'GET',
-      signal: controller.signal,
-      headers: {
-        'x-sentinel-workflow': 'gtm-copilot',
-        'x-sentinel-goal': input.goal,
-      },
-    });
-    clearTimeout(timeout);
+  const retries = Math.max(0, Number(process.env.SENTINEL_PROVIDER_PREVIEW_RETRIES ?? '1'));
+  const maxAttempts = retries + 1;
+  const idempotencyKey = `wf_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
-    const latencyMs = Date.now() - started;
-    const status = res.status;
-    const ok = status < 500;
-    return {
-      status: ok ? 'ok' : 'warn',
-      details: {
-        provider: selected.url,
-        status,
-        latencyMs,
-      },
-    };
-  } catch (error) {
-    return {
-      status: 'warn',
-      details: {
-        provider: selected.url,
-        error: error instanceof Error ? error.message : 'provider-preview-failed',
-      },
-    };
+  let lastError: string | null = null;
+  let lastStatus = 0;
+  let latencyMs = 0;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const started = Date.now();
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(selected.url, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'x-sentinel-workflow': 'gtm-copilot',
+          'x-sentinel-goal': input.goal,
+          'x-idempotency-key': idempotencyKey,
+        },
+      });
+      clearTimeout(timeout);
+
+      latencyMs = Date.now() - started;
+      lastStatus = res.status;
+      if (res.status < 500) {
+        return {
+          status: 'ok',
+          details: {
+            provider: selected.url,
+            status: res.status,
+            latencyMs,
+            attempt,
+            maxAttempts,
+            idempotencyKey,
+          },
+        };
+      }
+      lastError = `provider-status-${res.status}`;
+    } catch (error) {
+      latencyMs = Date.now() - started;
+      lastError = error instanceof Error ? error.message : 'provider-preview-failed';
+    }
   }
+
+  return {
+    status: 'warn',
+    details: {
+      provider: selected.url,
+      status: lastStatus,
+      latencyMs,
+      attempts: maxAttempts,
+      retried: maxAttempts > 1,
+      idempotencyKey,
+      error: lastError || 'provider-preview-failed',
+    },
+  };
 }
 
 function buildBundleArtifact(input: GTMCopilotRequest, selected: ProviderScore | null) {
@@ -223,6 +249,15 @@ function getSettlementSamples(raw: Record<string, unknown>): number | null {
     if (attempts !== null) return attempts;
   }
 
+  const paidEvidence = raw.paidEvidence;
+  if (paidEvidence && typeof paidEvidence === 'object') {
+    const paidSettlement = (paidEvidence as Record<string, unknown>).settlement;
+    if (paidSettlement && typeof paidSettlement === 'object') {
+      const status = (paidSettlement as Record<string, unknown>).status;
+      if (status === 'settled' || status === 'failed') return 1;
+    }
+  }
+
   return null;
 }
 
@@ -247,6 +282,16 @@ function getSettlementSuccessRate(raw: Record<string, unknown>): number | null {
     }
   }
 
+  const paidEvidence = raw.paidEvidence;
+  if (paidEvidence && typeof paidEvidence === 'object') {
+    const paidSettlement = (paidEvidence as Record<string, unknown>).settlement;
+    if (paidSettlement && typeof paidSettlement === 'object') {
+      const status = (paidSettlement as Record<string, unknown>).status;
+      if (status === 'settled') return 1;
+      if (status === 'failed') return 0;
+    }
+  }
+
   return null;
 }
 
@@ -254,6 +299,13 @@ function inferX402(raw: Record<string, unknown>, status: number): boolean {
   if ('isX402' in raw) return toBoolean(raw.isX402);
   const payment = raw.x402Details;
   if (payment && typeof payment === 'object') return true;
+
+  const probeEvidence = raw.probeEvidence;
+  if (probeEvidence && typeof probeEvidence === 'object') {
+    const challengePresent = (probeEvidence as Record<string, unknown>).challengePresent;
+    if (typeof challengePresent === 'boolean') return challengePresent;
+  }
+
   return status === 402;
 }
 
@@ -272,14 +324,37 @@ function inferPrice(raw: Record<string, unknown>): string | undefined {
     return typeof price === 'string' ? price : undefined;
   }
 
+  const paidEvidence = raw.paidEvidence;
+  if (paidEvidence && typeof paidEvidence === 'object') {
+    const authorization = (paidEvidence as Record<string, unknown>).authorization;
+    if (authorization && typeof authorization === 'object') {
+      const amount = (authorization as Record<string, unknown>).amount;
+      return typeof amount === 'string' ? amount : undefined;
+    }
+  }
+
   return undefined;
 }
 
 function normalizeIndexerRecord(raw: Record<string, unknown>): CanaryEndpoint {
-  const status = toFiniteNumber(raw.status) ?? 0;
-  const responseTimeMs = toFiniteNumber(raw.responseTimeMs) ?? toFiniteNumber(raw.latencyMs) ?? 0;
+  const endpoint = raw.endpoint && typeof raw.endpoint === 'object' ? (raw.endpoint as Record<string, unknown>) : null;
+  const probeEvidence = raw.probeEvidence && typeof raw.probeEvidence === 'object'
+    ? (raw.probeEvidence as Record<string, unknown>)
+    : null;
+
+  const status = toFiniteNumber(raw.status) ?? toFiniteNumber(probeEvidence?.statusCode) ?? 0;
+  const responseTimeMs =
+    toFiniteNumber(raw.responseTimeMs) ??
+    toFiniteNumber(raw.latencyMs) ??
+    toFiniteNumber(probeEvidence?.latencyMs) ??
+    0;
   const isHealthy = 'isHealthy' in raw ? toBoolean(raw.isHealthy) : status > 0 && status < 500;
-  const method = typeof raw.method === 'string' ? raw.method.toUpperCase() : 'GET';
+  const method =
+    typeof raw.method === 'string'
+      ? raw.method.toUpperCase()
+      : typeof endpoint?.method === 'string'
+        ? String(endpoint.method).toUpperCase()
+        : 'GET';
   const price = inferPrice(raw);
 
   const x402Details =
@@ -303,8 +378,20 @@ function normalizeIndexerRecord(raw: Record<string, unknown>): CanaryEndpoint {
         : null;
 
   return {
-    name: typeof raw.name === 'string' ? raw.name : typeof raw.id === 'string' ? raw.id : 'unknown-provider',
-    url: typeof raw.url === 'string' ? raw.url : '',
+    name:
+      typeof raw.name === 'string'
+        ? raw.name
+        : typeof raw.id === 'string'
+          ? raw.id
+          : typeof endpoint?.providerId === 'string'
+            ? String(endpoint.providerId)
+            : 'unknown-provider',
+    url:
+      typeof raw.url === 'string'
+        ? raw.url
+        : typeof endpoint?.url === 'string'
+          ? String(endpoint.url)
+          : '',
     method,
     status,
     responseTimeMs,
@@ -445,9 +532,25 @@ export function pickProvider(
     .map((endpoint) => scoreCanaryEndpoint(endpoint, priceCeilingUsd))
     .sort(compareCandidates);
 
+  const trusted = scored.filter(
+    (candidate) =>
+      candidate.gates.protocolPass &&
+      candidate.gates.reliabilityPass &&
+      candidate.gates.securityPass &&
+      candidate.gates.economicCriticalPass &&
+      candidate.withinPriceCeiling,
+  );
+
+  const strong = scored.filter((candidate) => candidate.band === 'strong' && candidate.withinPriceCeiling);
+  const caution = scored.filter((candidate) => candidate.band === 'caution' && candidate.withinPriceCeiling);
+
   const selected =
-    scored.find((candidate) => candidate.withinPriceCeiling && candidate.evidence.settlementEvidence) ??
-    scored.find((candidate) => candidate.withinPriceCeiling) ??
+    trusted.find((candidate) => candidate.evidence.settlementEvidence) ??
+    trusted[0] ??
+    strong.find((candidate) => candidate.evidence.settlementEvidence) ??
+    strong[0] ??
+    caution.find((candidate) => candidate.evidence.settlementEvidence) ??
+    caution[0] ??
     scored[0];
 
   if (!selected) {
@@ -472,6 +575,9 @@ export function pickProvider(
   const reasonCodes: RoutingReasonCode[] = [
     passedTrustGates ? 'TRUST_GATES_PASSED' : 'FALLBACK_NO_TRUST_GATE_PASS',
   ];
+
+  if (!passedTrustGates && selected.band === 'strong') reasonCodes.push('FALLBACK_TIER_STRONG');
+  if (!passedTrustGates && selected.band === 'caution') reasonCodes.push('FALLBACK_TIER_CAUTION');
 
   if (!selected.withinPriceCeiling) reasonCodes.push('PRICE_ABOVE_CEILING');
   if (!selected.evidence.settlementEvidence) reasonCodes.push('INSUFFICIENT_SETTLEMENT_EVIDENCE');

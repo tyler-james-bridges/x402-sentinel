@@ -5,7 +5,7 @@ import {
   normalizeIndexerEndpoints,
   pickProvider,
   RoutingDeniedError,
-} from '../../../dist/routes/gtm-copilot.js';
+} from '../dist/routes/gtm-copilot.js';
 
 test('normalizeIndexerEndpoints maps indexer providers payload into sentinel inputs', () => {
   const payload = {
@@ -29,6 +29,50 @@ test('normalizeIndexerEndpoints maps indexer providers payload into sentinel inp
   assert.equal(normalized[0].x402Details?.price, '$0.003');
   assert.equal(normalized[0].settlementSuccessRate, 0.9);
   assert.equal(normalized[0].settlementSamples, 10);
+});
+
+test('normalizeIndexerEndpoints maps canonical indexer contract payload into settlement evidence', () => {
+  const payload = {
+    providers: [
+      {
+        endpoint: {
+          providerId: 'canonical-alpha',
+          url: 'https://canonical.example/pay',
+          method: 'POST',
+          origin: 'https://canonical.example',
+          path: '/pay',
+        },
+        probeEvidence: {
+          statusCode: 402,
+          challengePresent: true,
+        },
+        paidEvidence: {
+          pricingMode: 'exact',
+          authorization: {
+            amount: '0.01',
+            asset: 'USDC',
+            network: 'base',
+            recipient: '0xabc',
+          },
+          settlement: {
+            status: 'settled',
+            txHash: '0x123',
+          },
+        },
+      },
+    ],
+  };
+
+  const normalized = normalizeIndexerEndpoints(payload);
+  assert.equal(normalized.length, 1);
+  assert.equal(normalized[0].name, 'canonical-alpha');
+  assert.equal(normalized[0].url, 'https://canonical.example/pay');
+  assert.equal(normalized[0].method, 'POST');
+  assert.equal(normalized[0].status, 402);
+  assert.equal(normalized[0].isX402, true);
+  assert.equal(normalized[0].x402Details?.price, '0.01');
+  assert.equal(normalized[0].settlementSamples, 1);
+  assert.equal(normalized[0].settlementSuccessRate, 1);
 });
 
 test('pickProvider prioritizes trust gates -> settlement reliability -> latency -> price ceiling', () => {
@@ -137,4 +181,38 @@ test('deny-insufficient-evidence throws explicit reason codes', () => {
       return true;
     },
   );
+});
+
+test('pickProvider prefers within-ceiling candidate over over-ceiling trusted option', () => {
+  const endpoints = [
+    {
+      name: 'CautionFallback',
+      url: 'https://caution.example/pay',
+      method: 'GET',
+      status: 402,
+      responseTimeMs: 120,
+      isHealthy: true,
+      isX402: true,
+      x402Details: { price: '$0.50' },
+      settlementSuccessRate: 0.3,
+      settlementSamples: 1,
+    },
+    {
+      name: 'OverCeilingTrusted',
+      url: 'https://trusted-over.example/pay',
+      method: 'GET',
+      status: 402,
+      responseTimeMs: 40,
+      isHealthy: true,
+      isX402: true,
+      x402Details: { price: '$5.00' },
+      settlementSuccessRate: 1,
+      settlementSamples: 20,
+    },
+  ];
+
+  const result = pickProvider(endpoints, { priceCeilingUsd: 1, denyInsufficientEvidence: false });
+  assert.equal(result.selected?.withinPriceCeiling, true);
+  assert.ok(result.reasonCodes.includes('TRUST_GATES_PASSED'));
+  assert.ok(!result.reasonCodes.includes('PRICE_ABOVE_CEILING'));
 });
