@@ -369,10 +369,14 @@ export function pickProvider(
   if (!selected.evidence.settlementEvidence) reasonCodes.push('INSUFFICIENT_SETTLEMENT_EVIDENCE');
   if (!selected.evidence.protocolEvidence) reasonCodes.push('INSUFFICIENT_PROTOCOL_EVIDENCE');
 
-  if (denyInsufficientEvidence && fallbackUsed) {
+  const missingSettlementEvidence = !selected.evidence.settlementEvidence;
+
+  if (denyInsufficientEvidence && (fallbackUsed || missingSettlementEvidence)) {
     reasonCodes.push('DENY_INSUFFICIENT_EVIDENCE');
     throw new RoutingDeniedError(
-      'routing denied: no provider satisfied trust gates with sufficient evidence',
+      missingSettlementEvidence
+        ? 'routing denied: selected provider lacks settlement evidence'
+        : 'routing denied: no provider satisfied trust gates with sufficient evidence',
       reasonCodes,
       {
         fallbackUsed,
