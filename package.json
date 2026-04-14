@@ -10,7 +10,8 @@
     "test": "pnpm -r test",
     "dev:api": "pnpm --filter @x402-sentinel/bundle-api dev",
     "report:canary": "node scripts/generate-canary-report.mjs",
-    "report:providers": "node scripts/generate-providers-report.mjs"
+    "report:providers": "node scripts/generate-providers-report.mjs",
+    "probe:paid": "node scripts/generate-providers-report.mjs --with-payment --max-payment 0.01 --payment-limit 3"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",
