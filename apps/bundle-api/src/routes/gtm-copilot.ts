@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+
 export interface GTMCopilotRequest {
   targets: string[];
   goal: string;
@@ -35,6 +37,8 @@ export type RoutingReasonCode =
   | 'FALLBACK_NO_TRUST_GATE_PASS'
   | 'FALLBACK_TIER_STRONG'
   | 'FALLBACK_TIER_CAUTION'
+  | 'AUTO_QUARANTINE_FLAKY_ENDPOINT'
+  | 'FALLBACK_QUARANTINE_BYPASS'
   | 'DENY_INSUFFICIENT_EVIDENCE'
   | 'ROUTING_NO_PROVIDERS'
   | 'PRICE_ABOVE_CEILING'
@@ -51,7 +55,10 @@ export interface ProviderScore {
   confidence: number;
   priceValue: number | null;
   settlementReliability: number;
+  settlementSamples: number;
   withinPriceCeiling: boolean;
+  isQuarantined: boolean;
+  quarantineReason: string | null;
   evidence: {
     protocolEvidence: boolean;
     priceEvidence: boolean;
@@ -79,6 +86,10 @@ export class RoutingDeniedError extends Error {
     this.reasonCodes = reasonCodes;
     this.diagnostics = diagnostics;
   }
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
 }
 
 function dedupeTargets(targets: string[]): string[] {
@@ -448,7 +459,7 @@ export function scoreCanaryEndpoint(endpoint: CanaryEndpoint, priceCeilingUsd: n
   const devexDiscovery = endpoint.isX402 ? 7 : 4;
   const operationalTransparency = endpoint.isHealthy ? 3 : 1;
 
-  const total =
+  const baseTotal =
     protocolConformance +
     reliability +
     security +
@@ -456,8 +467,24 @@ export function scoreCanaryEndpoint(endpoint: CanaryEndpoint, priceCeilingUsd: n
     devexDiscovery +
     operationalTransparency;
 
-  const settlementReliability = Math.round(Math.max(0, Math.min(1, endpoint.settlementSuccessRate ?? 0)) * 100);
+  const settlementReliability = Math.round(clamp(endpoint.settlementSuccessRate ?? 0, 0, 1) * 100);
   const settlementSamples = endpoint.settlementSamples ?? 0;
+  const settlementWeight =
+    settlementSamples <= 0
+      ? -12
+      : clamp(
+          Math.round(((settlementReliability - 50) / 50) * 10) + Math.min(4, Math.floor(settlementSamples / 5)),
+          -12,
+          12,
+        );
+
+  const isPaidX402 = endpoint.isX402 && priceValue !== null && priceValue > 0;
+  const isQuarantined = isPaidX402 && settlementSamples >= 3 && settlementReliability < 60;
+  const quarantineReason = isQuarantined
+    ? `flaky-settlement-${settlementReliability}pct-over-${settlementSamples}-samples`
+    : null;
+
+  const total = baseTotal + settlementWeight - (isQuarantined ? 12 : 0);
 
   const evidence = {
     protocolEvidence: endpoint.status > 0,
@@ -471,7 +498,7 @@ export function scoreCanaryEndpoint(endpoint: CanaryEndpoint, priceCeilingUsd: n
     Number(evidence.priceEvidence) +
     Number(evidence.timingEvidence) +
     Number(evidence.settlementEvidence);
-  const confidence = Math.min(95, 40 + evidenceCount * 15);
+  const confidence = clamp(40 + evidenceCount * 15 + Math.round(settlementWeight / 2) - (isQuarantined ? 15 : 0), 10, 95);
 
   const band = gradeBand(total);
   const finalBand = band === 'trusted' && !evidence.settlementEvidence ? 'strong' : band;
@@ -486,7 +513,10 @@ export function scoreCanaryEndpoint(endpoint: CanaryEndpoint, priceCeilingUsd: n
     confidence,
     priceValue,
     settlementReliability,
+    settlementSamples,
     withinPriceCeiling: priceValue !== null ? priceValue <= priceCeilingUsd : false,
+    isQuarantined,
+    quarantineReason,
     evidence,
     gates: {
       protocolPass: protocolConformance >= 20,
@@ -497,14 +527,34 @@ export function scoreCanaryEndpoint(endpoint: CanaryEndpoint, priceCeilingUsd: n
   };
 }
 
+function fallbackTradeoffScore(candidate: ProviderScore): number {
+  const latencyPenalty = clamp(candidate.responseTimeMs || 5000, 0, 5000) / 100;
+  const pricePenalty = candidate.priceValue === null ? 25 : clamp(candidate.priceValue, 0, 1) * 25;
+  const settlementPenalty = candidate.evidence.settlementEvidence
+    ? clamp(20 - candidate.settlementReliability / 5, 0, 20)
+    : 20;
+
+  return latencyPenalty * 0.55 + pricePenalty * 0.35 + settlementPenalty * 0.1;
+}
+
 function compareCandidates(a: ProviderScore, b: ProviderScore): number {
   const trustA = Number(a.gates.protocolPass && a.gates.reliabilityPass && a.gates.securityPass && a.gates.economicCriticalPass);
   const trustB = Number(b.gates.protocolPass && b.gates.reliabilityPass && b.gates.securityPass && b.gates.economicCriticalPass);
   if (trustA !== trustB) return trustB - trustA;
 
+  const quarantineA = Number(a.isQuarantined);
+  const quarantineB = Number(b.isQuarantined);
+  if (quarantineA !== quarantineB) return quarantineA - quarantineB;
+
   const ceilingA = Number(a.withinPriceCeiling);
   const ceilingB = Number(b.withinPriceCeiling);
   if (ceilingA !== ceilingB) return ceilingB - ceilingA;
+
+  if (trustA === 0 && trustB === 0) {
+    const fallbackA = fallbackTradeoffScore(a);
+    const fallbackB = fallbackTradeoffScore(b);
+    if (fallbackA !== fallbackB) return fallbackA - fallbackB;
+  }
 
   const settlementEvidenceA = Number(a.evidence.settlementEvidence);
   const settlementEvidenceB = Number(b.evidence.settlementEvidence);
@@ -532,7 +582,11 @@ export function pickProvider(
     .map((endpoint) => scoreCanaryEndpoint(endpoint, priceCeilingUsd))
     .sort(compareCandidates);
 
-  const trusted = scored.filter(
+  const nonQuarantined = scored.filter((candidate) => !candidate.isQuarantined);
+  const quarantined = scored.filter((candidate) => candidate.isQuarantined);
+  const candidatePool = nonQuarantined.length > 0 ? nonQuarantined : scored;
+
+  const trusted = candidatePool.filter(
     (candidate) =>
       candidate.gates.protocolPass &&
       candidate.gates.reliabilityPass &&
@@ -541,8 +595,8 @@ export function pickProvider(
       candidate.withinPriceCeiling,
   );
 
-  const strong = scored.filter((candidate) => candidate.band === 'strong' && candidate.withinPriceCeiling);
-  const caution = scored.filter((candidate) => candidate.band === 'caution' && candidate.withinPriceCeiling);
+  const strong = candidatePool.filter((candidate) => candidate.band === 'strong' && candidate.withinPriceCeiling);
+  const caution = candidatePool.filter((candidate) => candidate.band === 'caution' && candidate.withinPriceCeiling);
 
   const selected =
     trusted.find((candidate) => candidate.evidence.settlementEvidence) ??
@@ -551,8 +605,10 @@ export function pickProvider(
     strong[0] ??
     caution.find((candidate) => candidate.evidence.settlementEvidence) ??
     caution[0] ??
-    scored.find((candidate) => candidate.withinPriceCeiling) ??
-    scored[0];
+    candidatePool.find((candidate) => candidate.withinPriceCeiling) ??
+    candidatePool[0] ??
+    quarantined.find((candidate) => candidate.withinPriceCeiling) ??
+    quarantined[0];
 
   if (!selected) {
     const reasonCodes: RoutingReasonCode[] = ['ROUTING_NO_PROVIDERS'];
@@ -570,7 +626,8 @@ export function pickProvider(
     selected.gates.protocolPass &&
     selected.gates.reliabilityPass &&
     selected.gates.securityPass &&
-    selected.gates.economicCriticalPass;
+    selected.gates.economicCriticalPass &&
+    !selected.isQuarantined;
 
   const fallbackUsed = !passedTrustGates;
   const reasonCodes: RoutingReasonCode[] = [
@@ -579,6 +636,8 @@ export function pickProvider(
 
   if (!passedTrustGates && selected.band === 'strong') reasonCodes.push('FALLBACK_TIER_STRONG');
   if (!passedTrustGates && selected.band === 'caution') reasonCodes.push('FALLBACK_TIER_CAUTION');
+  if (quarantined.length > 0) reasonCodes.push('AUTO_QUARANTINE_FLAKY_ENDPOINT');
+  if (selected.isQuarantined) reasonCodes.push('FALLBACK_QUARANTINE_BYPASS');
 
   if (!selected.withinPriceCeiling) reasonCodes.push('PRICE_ABOVE_CEILING');
   if (!selected.evidence.settlementEvidence) reasonCodes.push('INSUFFICIENT_SETTLEMENT_EVIDENCE');
@@ -612,6 +671,50 @@ async function fetchProvidersFromIndexer(indexerUrl: string): Promise<CanaryEndp
   return normalizeIndexerEndpoints(data);
 }
 
+async function applySettlementOverlay(endpoints: CanaryEndpoint[]): Promise<CanaryEndpoint[]> {
+  const overlayPath = (process.env.SENTINEL_SETTLEMENT_OVERLAY_PATH ?? 'reports/providers-score-report.json').trim();
+  if (!overlayPath) return endpoints;
+
+  try {
+    const raw = await readFile(overlayPath, 'utf8');
+    const parsed = JSON.parse(raw) as { settlementReliability?: unknown[] };
+    const rows = Array.isArray(parsed?.settlementReliability) ? parsed.settlementReliability : [];
+
+    const overlay = new Map<string, { samples: number | null; successRate: number | null }>();
+
+    for (const row of rows) {
+      if (!row || typeof row !== 'object') continue;
+      const rec = row as Record<string, unknown>;
+      const method = typeof rec.method === 'string' ? rec.method.toUpperCase() : null;
+      const url = typeof rec.url === 'string' ? rec.url : null;
+      if (!method || !url) continue;
+
+      const attempts = toFiniteNumber(rec.attempts);
+      const successRate = toFiniteNumber(rec.successRate);
+      const confirmed = rec.settlementEvidenceConfirmed === true || (attempts ?? 0) > 0;
+
+      overlay.set(`${method}::${url}`, {
+        samples: confirmed ? (attempts ?? 1) : null,
+        successRate: confirmed ? clamp(successRate ?? 1, 0, 1) : null,
+      });
+    }
+
+    return endpoints.map((endpoint) => {
+      const key = `${endpoint.method.toUpperCase()}::${endpoint.url}`;
+      const hit = overlay.get(key);
+      if (!hit) return endpoint;
+
+      return {
+        ...endpoint,
+        settlementSamples: hit.samples,
+        settlementSuccessRate: hit.successRate,
+      };
+    });
+  } catch {
+    return endpoints;
+  }
+}
+
 export async function runGTMCopilotBundle(input: GTMCopilotRequest) {
   const denyModeRaw = (process.env.SENTINEL_DENY_MODE ?? '').trim().toLowerCase();
   const denyMode: 'hard' | 'soft' =
@@ -625,6 +728,7 @@ export async function runGTMCopilotBundle(input: GTMCopilotRequest) {
   const priceCeilingUsd = Number(process.env.SENTINEL_PRICE_CEILING_USD ?? '0.01');
 
   const providers = await fetchProvidersFromIndexer(indexerUrl);
+  const enrichedProviders = await applySettlementOverlay(providers);
   const workflowSteps: WorkflowStepResult[] = [];
 
   workflowSteps.push({
@@ -638,7 +742,7 @@ export async function runGTMCopilotBundle(input: GTMCopilotRequest) {
     },
   });
 
-  const { selected, scoredTop5, fallbackUsed, reasonCodes } = pickProvider(providers, {
+  const { selected, scoredTop5, fallbackUsed, reasonCodes } = pickProvider(enrichedProviders, {
     priceCeilingUsd: Number.isFinite(priceCeilingUsd) ? priceCeilingUsd : Number.POSITIVE_INFINITY,
     denyInsufficientEvidence,
   });

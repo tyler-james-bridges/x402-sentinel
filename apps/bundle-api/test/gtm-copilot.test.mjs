@@ -216,3 +216,73 @@ test('pickProvider prefers within-ceiling candidate over over-ceiling trusted op
   assert.ok(result.reasonCodes.includes('TRUST_GATES_PASSED'));
   assert.ok(!result.reasonCodes.includes('PRICE_ABOVE_CEILING'));
 });
+
+test('pickProvider auto-quarantines flaky paid endpoints when stable alternatives exist', () => {
+  const endpoints = [
+    {
+      name: 'FlakyPaid',
+      url: 'https://flaky.example/pay',
+      method: 'GET',
+      status: 402,
+      responseTimeMs: 25,
+      isHealthy: true,
+      isX402: true,
+      x402Details: { price: '$0.002' },
+      settlementSuccessRate: 0.4,
+      settlementSamples: 12,
+    },
+    {
+      name: 'StablePaid',
+      url: 'https://stable.example/pay',
+      method: 'GET',
+      status: 402,
+      responseTimeMs: 90,
+      isHealthy: true,
+      isX402: true,
+      x402Details: { price: '$0.002' },
+      settlementSuccessRate: 0.92,
+      settlementSamples: 12,
+    },
+  ];
+
+  const result = pickProvider(endpoints, { priceCeilingUsd: 0.01, denyInsufficientEvidence: false });
+
+  assert.equal(result.selected?.name, 'StablePaid');
+  assert.equal(result.scoredTop5.find((x) => x.name === 'FlakyPaid')?.isQuarantined, true);
+  assert.ok(result.reasonCodes.includes('AUTO_QUARANTINE_FLAKY_ENDPOINT'));
+  assert.ok(!result.reasonCodes.includes('FALLBACK_QUARANTINE_BYPASS'));
+});
+
+test('fallback selection balances speed/cost when trust gates fail', () => {
+  const endpoints = [
+    {
+      name: 'CheaperButSlow',
+      url: 'https://slow.example/pay',
+      method: 'GET',
+      status: 200,
+      responseTimeMs: 800,
+      isHealthy: true,
+      isX402: false,
+      x402Details: { price: '$0.001' },
+      settlementSuccessRate: 0.6,
+      settlementSamples: 2,
+    },
+    {
+      name: 'FasterSlightlyPricier',
+      url: 'https://fast.example/pay',
+      method: 'GET',
+      status: 200,
+      responseTimeMs: 70,
+      isHealthy: true,
+      isX402: false,
+      x402Details: { price: '$0.006' },
+      settlementSuccessRate: 0.6,
+      settlementSamples: 2,
+    },
+  ];
+
+  const result = pickProvider(endpoints, { priceCeilingUsd: 0.01, denyInsufficientEvidence: false });
+  assert.equal(result.selected?.name, 'FasterSlightlyPricier');
+  assert.equal(result.fallbackUsed, true);
+  assert.ok(result.reasonCodes.includes('FALLBACK_NO_TRUST_GATE_PASS'));
+});
