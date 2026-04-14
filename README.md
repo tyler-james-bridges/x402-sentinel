@@ -34,6 +34,11 @@ npm run probe:paid
 Paid probe safety/budget runbook:
 - `docs/paid-probe-safety-budget-runbook.md`
 
+Client rollout package:
+- `docs/client-rollout-demo-script.md`
+- `docs/client-rollout-known-risks-one-pager.md`
+- `docs/client-rollout-runbook-slice.md`
+
 ## Bundle API: GTM copilot routing
 - `POST /api/bundles/gtm-copilot`
 - Required body: `{ "targets": string[], "goal": string, "budget"?: number }`
