@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://x402-sentinel/contracts/indexer-to-sentinel.schema.json",
+  "title": "IndexerToSentinelRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "endpoint",
+    "discoveryEvidence",
+    "probeEvidence",
+    "paidEvidence",
+    "timestamps",
+    "confidence"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "Versioned payload contract, semver format.",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["origin", "url", "method", "path"],
+      "properties": {
+        "providerId": { "type": "string", "minLength": 1 },
+        "origin": { "type": "string", "format": "uri" },
+        "url": { "type": "string", "format": "uri" },
+        "method": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "network": { "type": "string", "minLength": 1 },
+        "asset": { "type": "string", "minLength": 1 },
+        "scheme": { "type": "string", "minLength": 1 }
+      }
+    },
+    "discoveryEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "discoveredAt", "proofs"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": ["openapi", "well-known", "endpoint", "bazaar-v2", "manual"]
+        },
+        "discoveredAt": { "type": "string", "format": "date-time" },
+        "proofs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "location"],
+            "properties": {
+              "kind": { "type": "string", "minLength": 1 },
+              "location": { "type": "string", "minLength": 1 },
+              "hash": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "probeEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["probedAt", "statusCode", "challengePresent", "findings"],
+      "properties": {
+        "probedAt": { "type": "string", "format": "date-time" },
+        "statusCode": { "type": "integer", "minimum": 100, "maximum": 599 },
+        "challengePresent": { "type": "boolean" },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "severity", "passed", "message"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "severity": { "type": "string", "enum": ["error", "warn", "info"] },
+              "passed": { "type": "boolean" },
+              "message": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "paidEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attemptedAt", "pricingMode", "authorization", "settlement"],
+      "properties": {
+        "attemptedAt": { "type": "string", "format": "date-time" },
+        "pricingMode": {
+          "type": "string",
+          "enum": ["exact", "upto", "dynamic", "auth-only", "unknown"]
+        },
+        "authorization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["amount", "asset", "network", "recipient"],
+          "properties": {
+            "amount": { "type": "string", "minLength": 1 },
+            "asset": { "type": "string", "minLength": 1 },
+            "network": { "type": "string", "minLength": 1 },
+            "recipient": { "type": "string", "minLength": 1 },
+            "expiresAt": { "type": "string", "format": "date-time" }
+          }
+        },
+        "settlement": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status"],
+          "properties": {
+            "status": { "type": "string", "enum": ["settled", "failed", "skipped", "unknown"] },
+            "settledAmount": { "type": "string", "minLength": 1 },
+            "txHash": { "type": "string", "minLength": 1 },
+            "receiptRef": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "timestamps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["indexedAt", "observedAt", "updatedAt"],
+      "properties": {
+        "indexedAt": { "type": "string", "format": "date-time" },
+        "observedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "confidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "level"],
+      "properties": {
+        "score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "level": { "type": "string", "enum": ["low", "medium", "high"] },
+        "reasons": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

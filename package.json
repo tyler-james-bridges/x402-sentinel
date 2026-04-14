@@ -13,6 +13,8 @@
     "report:providers": "node scripts/generate-providers-report.mjs"
   },
   "devDependencies": {
+    "ajv": "^8.18.0",
+    "ajv-formats": "^3.0.1",
     "typescript": "^5.8.3"
   }
 }

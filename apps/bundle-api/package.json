@@ -6,7 +6,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo 'lint pending'",
-    "test": "echo 'tests pending'",
+    "test": "pnpm build && node --test test/**/*.test.mjs",
     "dev": "node --watch src/index.ts"
   },
   "dependencies": {

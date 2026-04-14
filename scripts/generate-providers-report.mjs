@@ -17,6 +17,10 @@ function getArgValue(flag, fallback) {
 const maxPaymentUsd = Number(getArgValue('--max-payment', '0.01'));
 const paymentLimit = Number(getArgValue('--payment-limit', '3'));
 
+const REPORTS_DIR_URL = new URL('../reports/', import.meta.url);
+const PROVIDERS_REPORT_JSON_URL = new URL('../reports/providers-score-report.json', import.meta.url);
+const PROVIDERS_REPORT_MD_URL = new URL('../reports/providers-score-report.md', import.meta.url);
+
 const fixtureData = JSON.parse(
   await readFile(new URL('../fixtures/providers.json', import.meta.url), 'utf8'),
 );
@@ -54,6 +58,120 @@ function parsePrice(price) {
   if (!price) return null;
   const v = Number(String(price).replace(/[^0-9.]/g, ''));
   return Number.isFinite(v) ? v : null;
+}
+
+function getEndpointKey(endpoint) {
+  return `${endpoint.method || 'GET'}::${endpoint.url}`;
+}
+
+function toMoney(amount) {
+  return Number(Number(amount || 0).toFixed(6));
+}
+
+async function loadPreviousReport() {
+  try {
+    const previousRaw = await readFile(PROVIDERS_REPORT_JSON_URL, 'utf8');
+    return JSON.parse(previousRaw);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeHistoricalEntry(entry) {
+  if (!entry || typeof entry !== 'object') return null;
+
+  const attempts = Number(entry.attempts || 0);
+  const successes = Number(entry.successes || 0);
+  const amountUsd = Number(entry.amountUsd || entry.totalPaidUsd || 0);
+
+  const url = typeof entry.url === 'string' ? entry.url : null;
+  const method = typeof entry.method === 'string' ? entry.method : 'GET';
+  if (!url) return null;
+
+  return {
+    key: getEndpointKey({ method, url }),
+    name: typeof entry.name === 'string' ? entry.name : url,
+    method,
+    url,
+    attempts: Number.isFinite(attempts) ? attempts : 0,
+    successes: Number.isFinite(successes) ? successes : 0,
+    failures: Math.max(0, (Number.isFinite(attempts) ? attempts : 0) - (Number.isFinite(successes) ? successes : 0)),
+    amountUsd: Number.isFinite(amountUsd) ? amountUsd : 0,
+    lastError: typeof entry.lastError === 'string' && entry.lastError.length ? entry.lastError : null,
+  };
+}
+
+function collectHistoricalSeed(previousReport) {
+  const seed = [];
+
+  const explicitHistorical = previousReport?.settlementReliabilityHistorical?.byEndpoint;
+  if (Array.isArray(explicitHistorical)) seed.push(...explicitHistorical);
+
+  // Backward compatibility: previous versions emitted settlementReliability as an array.
+  if (Array.isArray(previousReport?.settlementReliability)) seed.push(...previousReport.settlementReliability);
+
+  return seed.map(normalizeHistoricalEntry).filter(Boolean);
+}
+
+function buildHistoricalRollup(previousReport, currentRunEntries) {
+  const map = new Map();
+
+  for (const row of collectHistoricalSeed(previousReport)) {
+    map.set(row.key, { ...row });
+  }
+
+  for (const entry of currentRunEntries) {
+    const key = entry.key;
+    const existing = map.get(key) || {
+      key,
+      name: entry.name,
+      method: entry.method,
+      url: entry.url,
+      attempts: 0,
+      successes: 0,
+      failures: 0,
+      amountUsd: 0,
+      lastError: null,
+    };
+
+    const merged = {
+      ...existing,
+      name: entry.name,
+      method: entry.method,
+      url: entry.url,
+      attempts: existing.attempts + entry.attempts,
+      successes: existing.successes + entry.successes,
+      failures: existing.failures + entry.failures,
+      amountUsd: toMoney(existing.amountUsd + entry.amountUsd),
+      lastError: entry.lastError || existing.lastError,
+    };
+
+    map.set(key, merged);
+  }
+
+  const byEndpoint = [...map.values()]
+    .map((entry) => ({
+      ...entry,
+      successRate: entry.attempts > 0 ? Number((entry.successes / entry.attempts).toFixed(4)) : 0,
+    }))
+    .sort((a, b) => b.attempts - a.attempts || b.successRate - a.successRate);
+
+  const totalAttempts = byEndpoint.reduce((sum, e) => sum + e.attempts, 0);
+  const totalSuccesses = byEndpoint.reduce((sum, e) => sum + e.successes, 0);
+  const totalFailures = byEndpoint.reduce((sum, e) => sum + e.failures, 0);
+  const totalPaidUsd = toMoney(byEndpoint.reduce((sum, e) => sum + e.amountUsd, 0));
+
+  return {
+    hasHistory: Boolean(previousReport),
+    sourceGeneratedAt: previousReport?.generatedAt || null,
+    endpointCount: byEndpoint.length,
+    totalAttempts,
+    totalSuccesses,
+    totalFailures,
+    successRate: totalAttempts > 0 ? Number((totalSuccesses / totalAttempts).toFixed(4)) : 0,
+    totalPaidUsd,
+    byEndpoint,
+  };
 }
 
 async function discover(baseUrlInput) {
@@ -249,17 +367,40 @@ function scorePayableProbe(result, price) {
 }
 
 function enforceTrustedRequiresSettlementEvidence(item) {
-  if (item.band === 'trusted' && !item.evidence?.settlementEvidence) {
-    return {
-      ...item,
-      band: 'strong',
-      trustAdjustments: [
-        ...(item.trustAdjustments || []),
-        'downgraded-trusted-without-settlement-evidence',
-      ],
-    };
+  const settlementEvidenceConfirmed = Boolean(item.evidence?.settlementEvidence);
+  const reasonCodes = [
+    settlementEvidenceConfirmed ? 'SETTLEMENT_EVIDENCE_CONFIRMED' : 'SETTLEMENT_EVIDENCE_MISSING',
+  ];
+
+  const trustedBandPolicy = {
+    requiresConfirmedSettlementEvidence: true,
+    originalBand: item.band,
+    effectiveBand: item.band,
+    settlementEvidenceConfirmed,
+  };
+
+  if (item.band === 'trusted' && !settlementEvidenceConfirmed) {
+    trustedBandPolicy.effectiveBand = 'strong';
+    reasonCodes.push('TRUSTED_REQUIRES_CONFIRMED_SETTLEMENT_EVIDENCE');
   }
-  return item;
+
+  if (item.band === 'trusted' && settlementEvidenceConfirmed) {
+    reasonCodes.push('TRUSTED_ALLOWED_CONFIRMED_SETTLEMENT_EVIDENCE');
+  }
+
+  return {
+    ...item,
+    band: trustedBandPolicy.effectiveBand,
+    trustAdjustments:
+      trustedBandPolicy.effectiveBand !== trustedBandPolicy.originalBand
+        ? [
+            ...(item.trustAdjustments || []),
+            'downgraded-trusted-without-settlement-evidence',
+          ]
+        : item.trustAdjustments || [],
+    reasonCodes: [...(item.reasonCodes || []), ...reasonCodes],
+    trustedBandPolicy,
+  };
 }
 
 function parseBankrCallJson(output) {
@@ -338,6 +479,8 @@ async function getCanaryEndpoints() {
   }
 }
 
+const previousReport = await loadPreviousReport();
+
 const pageScores = [];
 for (const p of providerPages) {
   const d = await discover(p.url);
@@ -375,6 +518,7 @@ for (const p of mergedPayables) {
 
 // Optional paid probes for settlement evidence
 let paidProbeBudgetSpent = 0;
+let paidProbeCandidatesEvaluated = 0;
 if (withPayment) {
   const payableCandidates = endpointScores
     .filter((e) => e.isX402Like && e.gates.protocolPass)
@@ -390,6 +534,8 @@ if (withPayment) {
     })
     .slice(0, paymentLimit);
 
+  paidProbeCandidatesEvaluated = payableCandidates.length;
+
   for (const candidate of payableCandidates) {
     const paid = runPaidProbe(candidate);
     paidProbeBudgetSpent += paid.success ? Number(paid.paymentMade?.amountUsd || 0) : 0;
@@ -397,11 +543,6 @@ if (withPayment) {
     candidate.paidProbe = paid;
     candidate.evidence.settlementEvidence = paid.success;
     candidate.evidenceRefs = [...(candidate.evidenceRefs || []), ...paid.settlementEvidenceRefs];
-
-    // Trusted band requires settlement evidence
-    if (candidate.band === 'trusted' && !candidate.evidence.settlementEvidence) {
-      candidate.band = 'strong';
-    }
   }
 }
 
@@ -435,18 +576,62 @@ const selectedEndpoints = strictPayable
   ? adjustedEndpointScores
   : adjustedEndpointScores.slice(0, Math.max(20, adjustedEndpointScores.length));
 
-const settlementReliability = adjustedEndpointScores
-  .filter((e) => e.paidProbe)
-  .map((e) => ({
-    name: e.name,
-    url: e.url,
-    attempts: 1,
-    successes: e.paidProbe?.success ? 1 : 0,
-    successRate: e.paidProbe?.success ? 1 : 0,
-    amountUsd: Number(e.paidProbe?.paymentMade?.amountUsd || 0),
-    lastError: e.paidProbe?.error || null,
-  }))
+const settlementReliabilityCurrentRun = adjustedEndpointScores
+  .filter((e) => e.paidProbe?.attempted)
+  .map((e) => {
+    const attempts = 1;
+    const successes = e.paidProbe?.success ? 1 : 0;
+    const failures = attempts - successes;
+
+    return {
+      key: getEndpointKey(e),
+      name: e.name,
+      method: e.method,
+      url: e.url,
+      attempts,
+      successes,
+      failures,
+      successRate: successes / attempts,
+      amountUsd: Number(e.paidProbe?.paymentMade?.amountUsd || 0),
+      lastError: e.paidProbe?.error || null,
+      settlementEvidenceConfirmed: Boolean(e.evidence?.settlementEvidence),
+      reasonCodes: e.reasonCodes || [],
+    };
+  })
   .sort((a, b) => b.successRate - a.successRate);
+
+const settlementReliabilityMetrics = {
+  policy: {
+    trustedRequiresConfirmedSettlementEvidence: true,
+    reasonCode: 'TRUSTED_REQUIRES_CONFIRMED_SETTLEMENT_EVIDENCE',
+  },
+  paidProbeMode: withPayment ? 'enabled' : 'disabled',
+  paidProbeCandidatesEvaluated,
+  paidProbeAttempts: settlementReliabilityCurrentRun.length,
+  paidProbeSuccesses: settlementReliabilityCurrentRun.reduce((sum, s) => sum + s.successes, 0),
+  paidProbeFailures: settlementReliabilityCurrentRun.reduce((sum, s) => sum + s.failures, 0),
+  paidProbeSuccessRate:
+    settlementReliabilityCurrentRun.length > 0
+      ? Number(
+          (
+            settlementReliabilityCurrentRun.reduce((sum, s) => sum + s.successes, 0) /
+            settlementReliabilityCurrentRun.length
+          ).toFixed(4),
+        )
+      : 0,
+  settlementEvidenceConfirmedCount: adjustedEndpointScores.filter((e) => e.evidence?.settlementEvidence)
+    .length,
+  trustedBandDowngradedCount: adjustedEndpointScores.filter(
+    (e) => e.trustedBandPolicy?.originalBand === 'trusted' && e.trustedBandPolicy?.effectiveBand !== 'trusted',
+  ).length,
+  paidProbeBudgetSpent: toMoney(paidProbeBudgetSpent),
+  paidProbeBudgetMax: toMoney(maxPaymentUsd * paymentLimit),
+};
+
+const settlementReliabilityHistorical = buildHistoricalRollup(
+  previousReport,
+  settlementReliabilityCurrentRun,
+);
 
 const md = [
   '# Providers Score Snapshot',
@@ -468,33 +653,56 @@ const md = [
   '',
   '## Payable Endpoint Probes (routing candidates)',
   '',
-  '| Endpoint | Method | Score | Band | Confidence | Status | Latency | x402-like | Price | Econ Gate | Challenge Evidence | Settlement Evidence |',
-  '|---|---|---:|---|---:|---:|---:|---|---|---|---|---|',
+  '| Endpoint | Method | Score | Band | Confidence | Status | Latency | x402-like | Price | Econ Gate | Challenge Evidence | Settlement Evidence | Reason Codes |',
+  '|---|---|---:|---|---:|---:|---:|---|---|---|---|---|---|',
   ...selectedEndpoints.map(
     (s) =>
-      `| ${s.name} | ${s.method} | ${s.total} | ${s.band} | ${s.confidence} | ${s.status} | ${s.responseTimeMs}ms | ${s.isX402Like ? 'yes' : 'no'} | ${s.price} | ${s.gates.economicCriticalPass ? 'pass' : 'fail'} | ${s.evidence.challengeEvidence ? 'yes' : 'no'} | ${s.evidence.settlementEvidence ? 'yes' : 'no'} |`,
+      `| ${s.name} | ${s.method} | ${s.total} | ${s.band} | ${s.confidence} | ${s.status} | ${s.responseTimeMs}ms | ${s.isX402Like ? 'yes' : 'no'} | ${s.price} | ${s.gates.economicCriticalPass ? 'pass' : 'fail'} | ${s.evidence.challengeEvidence ? 'yes' : 'no'} | ${s.evidence.settlementEvidence ? 'yes' : 'no'} | ${(s.reasonCodes || []).join(', ') || 'n/a'} |`,
   ),
   '',
   `Total payable endpoints scored: ${adjustedEndpointScores.length}`,
   `Routing candidates passing gates: ${selectedForRouting.length}`,
   `Routing decision: ${routingDecision.allowed ? 'allow' : 'deny'} (${routingDecision.reason})`,
   '',
-  '## Settlement Reliability (paid probes)',
+  '## Settlement Reliability',
   '',
-  '| Endpoint | Attempts | Successes | Success Rate | Paid USD | Last Error |',
-  '|---|---:|---:|---:|---:|---|',
-  ...(settlementReliability.length
-    ? settlementReliability.map(
+  `- Policy: trusted requires confirmed settlement evidence (${settlementReliabilityMetrics.policy.reasonCode})`,
+  `- Paid probe attempts: ${settlementReliabilityMetrics.paidProbeAttempts}`,
+  `- Paid probe success rate: ${(settlementReliabilityMetrics.paidProbeSuccessRate * 100).toFixed(1)}%`,
+  `- Confirmed settlement evidence: ${settlementReliabilityMetrics.settlementEvidenceConfirmedCount}`,
+  `- Budget spent / max: $${settlementReliabilityMetrics.paidProbeBudgetSpent.toFixed(4)} / $${settlementReliabilityMetrics.paidProbeBudgetMax.toFixed(4)}`,
+  '',
+  '### Current Run',
+  '',
+  '| Endpoint | Attempts | Successes | Success Rate | Paid USD | Evidence Confirmed | Last Error |',
+  '|---|---:|---:|---:|---:|---|---|',
+  ...(settlementReliabilityCurrentRun.length
+    ? settlementReliabilityCurrentRun.map(
         (s) =>
-          `| ${s.name} | ${s.attempts} | ${s.successes} | ${(s.successRate * 100).toFixed(0)}% | ${s.amountUsd.toFixed(4)} | ${s.lastError ? 'yes' : 'no'} |`,
+          `| ${s.name} | ${s.attempts} | ${s.successes} | ${(s.successRate * 100).toFixed(0)}% | ${s.amountUsd.toFixed(4)} | ${s.settlementEvidenceConfirmed ? 'yes' : 'no'} | ${s.lastError ? 'yes' : 'no'} |`,
       )
-    : ['| (no paid probes yet) | 0 | 0 | 0% | 0.0000 | n/a |']),
+    : ['| (no paid probes yet) | 0 | 0 | 0% | 0.0000 | no | n/a |']),
+  '',
+  '### Historical Rollup',
+  '',
+  `- Historical source report: ${settlementReliabilityHistorical.sourceGeneratedAt || 'none'}`,
+  `- Historical attempts: ${settlementReliabilityHistorical.totalAttempts}`,
+  `- Historical success rate: ${(settlementReliabilityHistorical.successRate * 100).toFixed(1)}%`,
+  '',
+  '| Endpoint | Attempts | Successes | Success Rate | Total Paid USD |',
+  '|---|---:|---:|---:|---:|',
+  ...(settlementReliabilityHistorical.byEndpoint.length
+    ? settlementReliabilityHistorical.byEndpoint.map(
+        (s) =>
+          `| ${s.name} | ${s.attempts} | ${s.successes} | ${(s.successRate * 100).toFixed(0)}% | ${Number(s.amountUsd || 0).toFixed(4)} |`,
+      )
+    : ['| (no historical settlement data yet) | 0 | 0 | 0% | 0.0000 |']),
   '',
 ].join('\n');
 
-await mkdir(new URL('../reports/', import.meta.url), { recursive: true });
+await mkdir(REPORTS_DIR_URL, { recursive: true });
 await writeFile(
-  new URL('../reports/providers-score-report.json', import.meta.url),
+  PROVIDERS_REPORT_JSON_URL,
   JSON.stringify(
     {
       generatedAt: new Date().toISOString(),
@@ -507,13 +715,15 @@ await writeFile(
       endpointScores: adjustedEndpointScores,
       selectedForRouting,
       routingDecision,
-      settlementReliability,
+      settlementReliability: settlementReliabilityCurrentRun,
+      settlementReliabilityMetrics,
+      settlementReliabilityHistorical,
     },
     null,
     2,
   ),
 );
-await writeFile(new URL('../reports/providers-score-report.md', import.meta.url), md);
+await writeFile(PROVIDERS_REPORT_MD_URL, md);
 
 console.log('wrote reports/providers-score-report.json');
 console.log('wrote reports/providers-score-report.md');
