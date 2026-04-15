@@ -1,0 +1,17 @@
+{
+  "launchId": "soft-launch-2026-04-14",
+  "startAt": "2026-04-14T23:45:00.000Z",
+  "durationHours": 48,
+  "timezone": "America/Phoenix",
+  "cadenceHours": 2,
+  "budget": {
+    "dailyCapUsd": 5,
+    "defaultMaxPaymentUsd": 0.01,
+    "defaultPaymentLimit": 3
+  },
+  "successBars": {
+    "paidProbeSuccessRateMin": 0.95,
+    "criticalGateBypassesMax": 0,
+    "overCapPaymentsMax": 0
+  }
+}
