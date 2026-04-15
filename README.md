@@ -88,3 +88,7 @@ Local publish helper:
 ```bash
 npm run probe:publish -- --to https://your-indexer.example/api/settlement-evidence
 ```
+
+## Ops quick reference
+- `docs/x402-operator-cheatsheet.md`
+- `docs/agent-consumer-poc.md`
